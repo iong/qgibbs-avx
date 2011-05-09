@@ -5,13 +5,13 @@ program gibbs3
     real*8 :: Vtot, V(2), bl(2), kT, beta, U0(4), xstep(2), &
             logVstep, Vstep
     real*8 :: Z, Um(2), Vm(2), Nm(2), pm(2), rho0(2), rhom(2)
-    real*8, allocatable :: rs(:,:, :)
+    real*8, allocatable :: rs(:,:, :), mcblock(:,:)
     real*8, allocatable, target :: Umat(:,:,:), Umatnew(:,:,:)
     real*8, allocatable :: Ucacheline(:,:), y6cache(:)
     integer :: Ntot, N(2), Nswap=0, Nvol
     integer :: npickatt(2), npickattmax, nswapacc = 0
     integer :: nxtrials(2)=0, nxacc(2)=0, nvoltrials=0, nvolacc=0
-    integer :: imc, NMC=10000000, jmc, Ncalibrate=500000
+    integer :: imc, NMC=10000000, jmc, Nburn=5000000, mcblen=1000000, ib
     integer :: logfd=31
     character(LEN=256) :: arg
 
@@ -35,19 +35,19 @@ program gibbs3
     end if
 
 
-    write(arg, '("kT=",F4.2,".log")') kT
+    write(arg, '("kT=",F5.2,".log")') kT
     open(logfd,file=trim(arg))
 
     Ntot = sum(N)
     allocate(Umat(Ntot, Ntot, 4), Umatnew(Ntot, Ntot, 4), rs(3, Ntot, 2), &
-        Ucacheline(Ntot,2), y6cache(Ntot))
+        Ucacheline(Ntot,2), y6cache(Ntot), mcblock(12, NMC/mcblen))
 
     V = N/rho0
     Vtot = sum(V)
     Vstep=0.01*minval(V)
 
     bl = V**(1d0/3d0)
-    xstep = minval(0.3/bl)
+    xstep = 3.0/bl
 
     if (minval(bl) < 5.0) then
         write (*,'("Box #",I1," is too small. L = ",F8.4, &
@@ -60,38 +60,25 @@ program gibbs3
 
     beta = 1.0/kT
 
-    rhcore = 1.0/(0.5 + 0.5*sqrt(1 - kT*log10(1d-15)))**(1d0/6d0)
+    rhcore = 2.4
 
     call populate_cube2(rs(:,1:N(1), 1))
     call populate_cube2(rs(:,1:N(2), 2))
     call init_interaction_matrix(bl, U0)
 
-    do imc=1,2000000
+    do imc=1,1000000
         call random_number(rn)
         jmc=int(rn*Ntot) + 1
         call mc_move(jmc)
         call cumulate()
         if (mod(imc,100000) == 0) then
-            write (logfd,'("NMC =",I10,", N =",2I5,", V =",2F9.2,", rho =",2F9.6,", U =",2F15.6,", p =",2F8.4,", Nswap = ",I0)') &
-                imc, N, V, N/V, U0(1:2), pm/Z, Nswap
-        end if
-    end do
-
-    do imc=1,100000
-        call random_number(rn)
-        jmc=1+int(rn*(Ntot + Nvol))
-        if (jmc<= Ntot) then
-            call mc_move(jmc)
-        else
-            call mc_vol()
-        endif
-        if (mod(imc,100000) == 0) then
-            write (logfd,*) "xstep =", xstep, ", Vstep=", Vstep
+            write (logfd,'("NMC =",I10,", N =",2I5,", V =",2F9.2,", rho =",2F9.6,", U =",2F15.6,", p =",2F8.4)') &
+                imc, N, V, N/V, U0(1:2), pm/Z
         end if
     end do
 
     Z = 0; Um = 0; Nm = 0; pm = 0; Vm = 0; rhom = 0
-    do imc=1,NMC
+    do imc=1,NMC+Nburn
         call random_number(rn)
         jmc=1+int(rn*(Ntot + Nswap + Nvol))
         if (jmc<= Ntot) then
@@ -101,13 +88,26 @@ program gibbs3
         elseif (jmc <= Ntot + Nswap + Nvol) then
             call mc_vol()
         endif
-        call cumulate()
         if (mod(imc,100000) == 0) then
-            write (logfd,'("NMC =",I10,", N =",2I5,", V =",2F9.2,", rho =",2F9.6,", U =",2F15.6,", p =",2F8.4,", Nswap = ",I0)') &
-                imc, N, V, N/V, U0(1:2), pm/Z, Nswap
+            write (logfd,'("NMC =",I10,", N =",2I5,", V =",2F10.2,", rho =",2F9.6,", U =",2F15.6,", p =",2F8.4,", swapacc = ",F8.5)') &
+                imc, N, V, N/V, U0(1:2), pm/Z, real(nswapacc*(Nswap+Nvol+Ntot))/(Z*real(Ntot))
         end if
-        if (mod(imc,1000000) == 0) then
-            call dump_data()
+        if (imc <= Nburn) cycle
+
+        call cumulate()
+        if (mod(imc-Nburn,mcblen) == 0) then
+            ib = (imc - Nburn) / mcblen
+            mcblock(1, ib) = kT
+            mcblock(2:3, ib) = rhom/Z
+            mcblock(4:5, ib) = pm/Z
+            mcblock(6:7, ib) = Um/Z
+            mcblock(8:9, ib) = Nm/Z
+            mcblock(10:11, ib) = Vm/Z
+            mcblock(12, ib) = real(nswapacc*(Ntot+Nvol+Nswap))/(Z*Ntot)
+
+            call dump_data(ib)
+            Z = 0; Um = 0; Nm = 0; pm = 0; Vm = 0; rhom = 0
+            nswapacc = 0
         end if
     enddo
 
@@ -217,6 +217,7 @@ subroutine mc_move(jin)
             xstep(ibox) = xstep(ibox)/1.04792d0
         end if
         xstep(ibox) = min(xstep(ibox), 0.25)
+        xstep(ibox) = max(xstep(ibox), 0.1/bl(ibox))
         nxacc(ibox) = 0
     end if
 end subroutine
@@ -233,19 +234,22 @@ subroutine mc_swap()
     call random_number(rsn)
     if (too_close(rsn, rs(:,1:N(idest), idest), bl(idest)) ) return
 
+    call random_number(rn)
+    jkill = 1 + int(rn*N(isrc))
+
     call dU_test_particle(idest, rsn, dUdest)
 
     pacc0 = ( V(idest) * real(N(isrc)) ) / ( V(isrc) * real(N(idest) + 1) )
 
-    call random_number(rn)
-    jkill = 1 + int(rn*N(isrc))
+
     dUsrc = sum(Umat(:, jkill, isrc))
     rc = 0.5*bl(isrc)
-    dUsrc = dUsrc + (2*N(isrc) - 1)/V(isrc)*8.0/9.0*M_PI*(1.0/rc**9 - 3.0/rc**3)
+    !dUsrc = dUsrc + (2*N(isrc) - 1)/V(isrc)*8.0/9.0*M_PI*(1.0/rc**9 - 3.0/rc**3)
     pacc = pacc0 * exp( - beta * (dUdest - dUsrc) )
 
     call random_number(rn)
     if (pacc > rn) then
+        write (*,*) 'swap'
         nswapacc = nswapacc + 1
         dvirsrc = sum(Umat(:, jkill, isrc+2))
         call dU_accept_particle_swap(jkill, isrc, idest, dvirdest)
@@ -334,6 +338,57 @@ subroutine update_virial_cache(Nbox)
                                 + 24.0*y6cache(1:Nbox)
 end subroutine
 
+subroutine USGp(rsj, rs, blj, USG, VSG)
+    implicit none
+    real*8,intent(in) :: rsj(3), rs(:,:), blj
+    real*8, intent(out) :: USG(:)
+    real*8, intent(out), optional :: VSG(:)
+    real*8 :: rcutoff, blsq, drs(3), drsq
+    real*8, dimension(Ntot) :: V, r1, r2, r6, r8, USGl
+    integer :: rcutidx(Ntot)
+    integer :: N, i, j, nrcut
+    real*8, parameter :: A = 14.376, B = 2.9618, G = 0.035471, &
+        C6 = 84106d0, C8 = 4.1737d5, C9 = 1.4685d5, C10 = 2.6137d6, &
+        rcrit = 4.4021
+
+
+    N = size(rs, 2)
+    blsq = blj**2
+    nrcut = 0
+    do i=1,N
+        drs = rsj - rs(:,i)
+        drsq = sum(min_image(drs)**2)
+        if (drsq < 0.25) then
+            nrcut = nrcut + 1
+            r2(nrcut) = drsq
+            rcutidx(nrcut) = i
+        end if
+    end do
+
+    r2(1:nrcut) = r2(1:nrcut) * blj**2
+    r1(1:nrcut) = sqrt(r2(1:nrcut))
+    r6(1:nrcut) = r2(1:nrcut)**3
+    r8(1:nrcut) = r6(1:nrcut)*r2(1:nrcut)
+
+    V(1:nrcut) = C6/r6(1:nrcut) + C8/r8(1:nrcut) &
+            - C9/(r8(1:nrcut) * r1(1:nrcut) ) + C10/(r8(1:nrcut) * r2(1:nrcut))
+    !firi = 6.0*C6 / r6 + 8.0*C8 / r8 - 9.0*C9 / (r8*r1) + 10.0*C10 / (r8*r2)
+
+    USGl(1:nrcut) = exp(A - B*r1(1:nrcut) - G*r2(1:nrcut))! - V*fc! - SGcutoff
+    do i=1,nrcut
+        if (r1(i) <= rcrit) then
+            USGl(i) = USGl(i) - V(i)*exp( - (rcrit / r1(i) - 1.0)**2 )
+        else
+            USGl(i) = USGl(i) - V(i)
+        endif
+    end do
+    USG = 0.0
+    USG(rcutidx(1:nrcut)) = USGl(1:nrcut)
+    if (present(VSG)) then
+        VSG=0.0
+    end if
+end subroutine
+
 subroutine init_interaction_matrix(bln, Utot, Udestmat)
     implicit none
     real*8, intent(in) :: bln(2)
@@ -351,7 +406,7 @@ subroutine init_interaction_matrix(bln, Utot, Udestmat)
     Umatp = 0d0
     do ibox=1,2
         do i=1, N(ibox)-1
-            call ULJp(rs(:, i, ibox), rs(:,i+1:N(ibox), ibox), bln(ibox), &
+            call USGp(rs(:, i, ibox), rs(:,i+1:N(ibox), ibox), bln(ibox), &
                     Umatp(i+1:N(ibox), i, ibox), &
                     Umatp(i+1:N(ibox), i, ibox + 2))
         end do
@@ -372,8 +427,8 @@ subroutine init_interaction_matrix(bln, Utot, Udestmat)
         end do
     end do
 
-    lrcorr = real(N**2)/bln**3*8.0/9.0*M_PI*(2.0**9/bln**9 - 24.0/bln**3)
-    Utot(1:2) = Utot(1:2) + lrcorr
+    !lrcorr = real(N**2)/bln**3*8.0/9.0*M_PI*(2.0**9/bln**9 - 24.0/bln**3)
+    !Utot(1:2) = Utot(1:2) + lrcorr
 end subroutine
 
 subroutine dU_particle_move(j, ibox, rsj, du)
@@ -383,7 +438,7 @@ subroutine dU_particle_move(j, ibox, rsj, du)
     real*8, intent(out) :: dU
 
     Ucacheline = 0d0
-    call ULJp(rsj, rs(:,1:N(ibox), ibox), bl(ibox), &
+    call USGp(rsj, rs(:,1:N(ibox), ibox), bl(ibox), &
             Ucacheline(1:N(ibox), 1))
     Ucacheline(j,1) = 0d0
 
@@ -412,7 +467,6 @@ function Utot_vol_scale(bln) result(Unew)
     implicit none
     real*8, intent(in) :: bln(2)
     real*8 :: Unew(4)
-    real*8 :: rc(2)
 
     call init_interaction_matrix(bln, Unew, Umatnew)
 end function
@@ -434,11 +488,11 @@ subroutine dU_test_particle(idest, rsj, dU)
     if (N(idest) == 0) return
 
     Ucacheline = 0d0
-    call ULJp(rsj, rs(:,1:N(idest), idest), bl(idest), &
+    call USGp(rsj, rs(:,1:N(idest), idest), bl(idest), &
             Ucacheline(1:N(idest), 1))
     dU = sum(Ucacheline(1:N(idest),1 ))
     rc = 0.5*bl(idest)
-    dU = dU + (2*N(idest)+1)/V(idest)*8.0/9.0*M_PI*(1.0/rc**9 - 3.0/rc**3)
+    !dU = dU + (2*N(idest)+1)/V(idest)*8.0/9.0*M_PI*(1.0/rc**9 - 3.0/rc**3)
 end subroutine
 
 subroutine dU_accept_particle_swap(p, psrc, pdest, dvirdest)
@@ -482,12 +536,15 @@ subroutine cumulate()
     end do
 end subroutine
 
-subroutine dump_data()
+subroutine dump_data(nmcb)
+    implicit none
+    integer, intent(in) :: nmcb
+    integer :: i
     character(256) :: fname
 
-    write(fname, '("Um_",F4.2,".dat")') kT
+    write(fname, '("Um_",F5.2,"_NMC.dat")') kT
     open(30,file=trim(fname))
-    write(30,'(11F16.5)') kT, rhom/Z, pm/Z, Um/Z, Nm/Z, Vm/Z
+    write(30,'(I10, 12ES16.7)') (i*mcblen+Nburn, mcblock(:,i), i=1,nmcb)
     close(30)
 end subroutine
 end program gibbs3
