@@ -1,17 +1,17 @@
-SUBROUTINE vgw0v(Q0, W, TAUMAX,TAUI, Y)
-    use propagation
-    use utils
+SUBROUTINE vgw0v(Q0, BL_, TAUMAX,TAUI, W, Y)
     use omp_lib
     IMPLICIT NONE
-    REAL*8, intent(in) :: Q0(3,Natom), TAUMAX(:), TAUI
-    REAL*8, intent(inout) :: Y(1+9*Natom)
+    REAL*8, intent(in) :: Q0(:,:), TAUMAX(:), TAUI, BL_
+    REAL*8, intent(inout) :: Y(:)
     REAL*8, intent(out) :: W(:)
-    real*8 :: G(3,3), T, LOGDET, taustops(1), waste(1)
-    real*8 :: DT, YP(1+9*Natom), next_stop
+    real*8 :: G(3,3), T, LOGDET
+    real*8 :: DT, YP(1+9*size(Q0, 2)), next_stop
     integer :: i, j, NEQ, chunk_size
 
 
-    NEQ = 1 + 9*Natom
+    Natom = size(Q0, 2)
+    NEQ = 1 + 9*size(Q0, 2)
+    BL = BL_
 
 !$OMP PARALLEL PRIVATE(I,J, G, T, DT, next_stop)
     if (TAUI <= 0.0d0) then
@@ -21,21 +21,15 @@ SUBROUTINE vgw0v(Q0, W, TAUMAX,TAUI, Y)
     endif
  
     tid = OMP_get_thread_num()
-    nthreads = OMP_get_num_threads()
+    nthr = OMP_get_num_threads()
 
-    chunk_size = Natom/nthreads
+    chunk_size = Natom/nthr
     thread_start=tid*chunk_size + 1
     thread_stop=(tid+1)*chunk_size
-    if (tid==nthreads-1) then
+    if (tid==nthr-1) then
        thread_stop = Natom
     end if
 
-!$OMP SINGLE
-        if (.not.allocated(upv)) then
-            allocate(upv(3,Natom,0:nthreads-1), upm(3,3,Natom,0:nthreads-1), &
-            TRUXXG(0:nthreads-1), U(0:nthreads-1))
-        end if
-!$OMP END SINGLE
 
     if (TAUI <= 0.0d0) then
         call interaction_lists(Q0) !Determine which particles
@@ -78,15 +72,15 @@ SUBROUTINE vgw0v(Q0, W, TAUMAX,TAUI, Y)
 END SUBROUTINE
 
 
-SUBROUTINE vgw0(Q0, W, TAUMAX,TAUI, Y)
+SUBROUTINE vgw0(Q0, BL_, TAUMAX,TAUI, W, Y)
 IMPLICIT NONE
-REAL*8, intent(in) :: Q0(3,Natom), TAUMAX, TAUI
-REAL*8, intent(inout) :: Y(1+9*Natom)
+REAL*8, intent(in) :: Q0(:,:), TAUMAX, TAUI, BL_
+REAL*8, intent(inout) :: Y(:)
 REAL*8, intent(out) :: W
 real*8, dimension(1) :: W_, TAUMAX_
 
     TAUMAX_(1) = TAUMAX
-    call vgw0v(Q0, W_, TAUMAX_, TAUI, Y)
+    call vgw0v(Q0, BL_, TAUMAX_, TAUI, W_, Y)
     W = W_(1)
 END SUBROUTINE
 

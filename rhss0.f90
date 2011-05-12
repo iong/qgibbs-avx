@@ -5,10 +5,10 @@ SUBROUTINE RHSS0(NEQ, DT, y, yp)
     REAL*8, intent(in) :: DT
     REAL*8, intent(inout) :: y(NEQ)
     REAL*8, intent(out) :: yp(NEQ)
-    INTEGER I, J,I1,I2,IG,CNT,CNT2, NN1
+    INTEGER :: J,I1,I2,IG,CNT,CNT2, NN1
     REAL*8 AG(3,3),GU(3,3), &
             DETA,DETAG,GUG(3,3),UX(3,nnbmax),UXX(3,3, nnbmax),QZQ,EXPAV, &
-            BL2, G12(3,3),A(3,3), &
+            G12(3,3),A(3,3), &
             Zq(3), Z(3,3),Q12(3), v0
     real*8 :: Q(3,Natom), G(3,3,Natom), GC(3,3,nnbmax), QC(3, nnbmax), UXX0(3,3), UX0(3), UPV_I1(3), UPM_I1(3,3)
     real*8 :: UPV_local(3,thread_start:thread_stop), UPM_local(3,3,thread_start:thread_stop), Ulocal
@@ -34,7 +34,8 @@ SUBROUTINE RHSS0(NEQ, DT, y, yp)
         qc(:,1:NN1) = q(:,nbidx(1:NN1,I1))
         GC(:,:,1:NN1) = G(:,:,nbidx(1:NN1,I1))
         DO I2=1,NN1
-            Q12 = min_image(Q(:,I1) - QC(:,I2), bl)
+            Q12 = Q(:,I1) - QC(:,I2)
+            Q12 = min_image(Q12, bl)
             G12=G(:,:,I1)+GC(:,:,I2)
 
             call detminvm(G12, DETA, A)
@@ -82,7 +83,7 @@ SUBROUTINE RHSS0(NEQ, DT, y, yp)
 
     UPV_local(:,thread_start:thread_stop) = UPV(:,thread_start:thread_stop,0)
     UPM_local(:,:,thread_start:thread_stop) = UPM(:,:,thread_start:thread_stop,0)
-    do i1=1,nthreads-1
+    do i1=1,nthr-1
         UPV_local(:,thread_start:thread_stop) = UPV_local(:,thread_start:thread_stop) + UPV(:,thread_start:thread_stop,i1)
         UPM_local(:,:,thread_start:thread_stop) = UPM_local(:,:,thread_start:thread_stop) + UPM(:,:,thread_start:thread_stop,i1)
     end do
@@ -108,7 +109,7 @@ SUBROUTINE RHSS0(NEQ, DT, y, yp)
 
 !$OMP BARRIER
 !$OMP MASTER
-            yp(1) = -0.25d0 * sum(TRUXXG) - sum(U)
+            yp(1) = -0.25d0 * sum(TRUXXG(0:nthr-1)) - sum(U(0:nthr-1))
             y(1) = y(1)  + yp(1) *DT
 !$OMP END MASTER
 END SUBROUTINE RHSS0
