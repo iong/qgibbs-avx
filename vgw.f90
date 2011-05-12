@@ -1,28 +1,55 @@
 module vgw
     use utils
     implicit none
-    integer, private :: Natom
-    real*8, private :: BL
+    private
+    public :: vgwinit, vgw0, unpack_q, unpack_g, unpack_f
+    
+    integer :: Natom, Nmax, maxthreads
+    real*8 :: BL
     real*8, dimension(10) :: LJA, LJC
     integer :: NGAUSS
     integer, allocatable :: NBIDX(:,:), NNB(:)
     real*8, allocatable :: UPV(:,:,:), UPM(:,:,:,:), TRUXXG(:), U(:)
     real*8, pointer :: yp_ptr(:)
-    real*8 :: invmass, RC, ATOL, RTOL, TAUMIN, mass
+    real*8 :: invmass, RC, TAUMIN, mass
     logical :: finished
-    integer :: tid=0, nthreads=1, thread_start, thread_stop, nnbmax
-!$OMP THREADPRIVATE(tid, nthreads, thread_start, thread_stop, nnbmax)
+    integer :: tid=0, nthr=1, thread_start, thread_stop, nnbmax
+!$OMP THREADPRIVATE(tid, nthr, thread_start, thread_stop, nnbmax)
 
 contains
 
-subroutine vgwinit(N, boxlen)
-    integer, intent(in) :: N
-    real*8, intent(in) :: boxlen
-    Natom = N
-    BL = boxlen
-    invmass=1.0D0/mass
+subroutine vgwinit(Nmax_, species, M, rcutoff)
+    use omp_lib
+    implicit none
+    integer, intent(in) :: Nmax_
+    character(*), intent(in) :: species
+    real*8, intent(in), optional :: M, rcutoff
 
-    allocate(NNB(Natom), NBIDX(natom,natom))
+    Nmax = Nmax_
+    maxthreads = omp_get_max_threads()
+    allocate(NNB(Nmax), NBIDX(Nmax,Nmax), upv(3,Nmax,0:maxthreads-1), &
+        upm(3,3,Nmax,0:maxthreads-1), TRUXXG(0:maxthreads-1), &
+        U(0:maxthreads-1))
+    
+    
+    if (species=='pH2') then
+        NGAUSS=3
+        LJA(1:3) = (/ 0.669311, 0.199426, 0.092713/)
+        LJC(1:3) = (/ 29380.898517, -303.054026, -40.574585 /)
+        mass = 2.0
+        rc = 8.0
+        TAUMIN=1d-4
+    end if
+    
+    if (present(M)) then
+        mass = M
+    end if
+    if (present(rcutoff)) then
+        rc = rcutoff
+    end if
+        
+    mass = mass*0.020614788876D0
+    invmass = 1.0/mass
 end subroutine
 
 
