@@ -1,80 +1,106 @@
 program qgibbs
+    use vgw
+    use utils, only: min_image, replace_char
     implicit none
     real*8, parameter :: M_PI = 3.141592653d0
     real*8 :: rhcore
-    real*8 :: Vtot, V(2), bl(2), kT, beta, U0(4), xstep(2), &
-            logVstep, Vstep
-    real*8 :: Z, Um(2), Vm(2), Nm(2), pm(2), rho0(2), rhom(2)
+    real*8 :: Vtot, V(2), bl(2), kT, beta, U0(4), xstep(2), Vstep
+    real*8 :: Z, Um(2), Vm(2), Nm(2), pm(2), rho0(2), rhom(2), mum(2)
     real*8, allocatable :: rs(:,:, :), mcblock(:,:)
     integer :: Ntot, N(2), Nswap=0, Nvol
-    integer :: npickatt(2), npickattmax, nswapacc = 0
+    integer :: nswapacc = 0, nmum(2)
     integer :: nxtrials(2)=0, nxacc(2)=0, nvoltrials=0, nvolacc=0
-    integer :: imc, NMC=10000000, jmc, Nburn=5000000, mcblen=1000000, ib
+    integer :: imc, NMC=15000000, jmc, Nequil=1000000, mcblen=1000000, ib, NMCstart
     integer :: logfd=31
     character(LEN=256) :: arg
 
 
     real*8 :: rn
 
-    call get_command_argument(1, arg)
-    read (arg, *) N(1)
-    call get_command_argument(2, arg)
-    read (arg, *) N(2)
-    call get_command_argument(3, arg)
-    read (arg, *) rho0(1)
-    call get_command_argument(4, arg)
-    read (arg, *) rho0(2)
-    call get_command_argument(5, arg)
-    read (arg, *) kT
-
-    if (command_argument_count() >= 6) then
+    if (command_argument_count() == 3) then
+        call get_command_argument(1, arg)
+        call load_xyz(arg)
+        read(arg, '(7X,I10)') NMCstart
+        Nequil = 0
+        NMCstart = NMCstart + 1
+        
+        call get_command_argument(2, arg)
+        read (arg, *) kT
+        
+        call get_command_argument(3, arg)
+        read(arg, *) Nswap
+        
+        write (*,*) NMCstart, kT
+    else
+        call get_command_argument(1, arg)
+        read (arg, *) N(1)
+        call get_command_argument(2, arg)
+        read (arg, *) N(2)
+        call get_command_argument(3, arg)
+        read (arg, *) rho0(1)
+        call get_command_argument(4, arg)
+        read (arg, *) rho0(2)
+        call get_command_argument(5, arg)
+        read (arg, *) kT
         call get_command_argument(6, arg)
         read(arg, *) Nswap
+        
+        Ntot = sum(N)
+        allocate(rs(3, Ntot, 2))
+        
+        V = N/rho0
+        Vtot = sum(V)
+        bl = V**(1d0/3d0)
+        
+        if (minval(bl) < 5.0) then
+            write (*,'("Box #",I1," is too small. L = ",F8.4, &
+               & " < 5*sigma = ",F8.4)') minloc(bl), minval(bl), 5.0
+            write (*,*) 'Consider increasing the number of particles or decreasing the density'
+        end if
+        
+        call populate_cube2(rs(:,1:N(1), 1))
+        call populate_cube2(rs(:,1:N(2), 2))
+        
+        NMCstart = Nequil + 1
     end if
+    
+    write (*,*) N, V, bl
 
 
     write(arg, '("qgibbs_kT=",F5.2,".log")') kT
-    open(logfd,file=trim(arg))
-    Ntot = sum(N)
-    allocate(rs(3, Ntot, 2), mcblock(12, NMC/mcblen))
-
-    V = N/rho0
-    Vtot = sum(V)
+    open(logfd,file=trim(arg), status='REPLACE')
+    
     Vstep=0.01*minval(V)
+    xstep = 3.0/bl
 
-    bl = V**(1d0/3d0)
-	xstep = 3.0/bl
+    allocate(mcblock(16, NMC/mcblen))
 
-    if (minval(bl) < 5.0) then
-        write (*,'("Box #",I1," is too small. L = ",F8.4, &
-            " < 5*sigma = ",F8.4)') minloc(bl), minval(bl), 5.0
-        write (*,*) 'Consider increasing the number of particles or decreasing the density'
-    end if
 
     Nvol = 1!minval(N)/20
-    write (*,*) 'Nvol =', Nvol
 
     beta = 1.0/kT
 
     rhcore = 2.4
 
-    call populate_cube2(rs(:,1:N(1), 1))
-    call populate_cube2(rs(:,1:N(2), 2))
+    call vgwinit(Ntot, 'pH2')
     U0 = total_energy(bl)
 
-    do imc=1,1000000
+    do imc=1,Nequil
         call random_number(rn)
         jmc=int(rn*Ntot) + 1
         call mc_move(jmc)
+        write (*,*) imc
         call cumulate()
         if (mod(imc,100000) == 0) then
-            write (logfd,'("NMC =",I10,", N =",2I5,", V =",2F9.2,", rho =",2F9.6,", U =",2F15.6,", p =",2F8.4)') &
+            write (logfd,'("NMC =",I10,", N =",2I5,", V =",2F9.2,", rho =",&
+                & 2F9.6,", U =",2F15.6,", p =",2F8.4)') &
                 imc, N, V, N/V, U0(1:2), pm/Z
+            call dump_xyz(imc)
         end if
     end do
 
-    Z = 0; Um = 0; Nm = 0; pm = 0; Vm = 0; rhom = 0
-    do imc=1,NMC+Nburn
+    Z = 0; Um = 0; Nm = 0; pm = 0; Vm = 0; rhom = 0; mum = 0; nmum = 0
+    do imc=NMCstart,NMC
         call random_number(rn)
         jmc=1+int(rn*(Ntot + Nswap + Nvol))
         if (jmc<= Ntot) then
@@ -85,23 +111,28 @@ program qgibbs
             call mc_vol()
         endif
         if (mod(imc,100000) == 0) then
-            write (logfd,'("NMC =",I10,", N =",2I5,", V =",2F10.2,", rho =",2F9.6,", U =",2F15.6,", p =",2F8.4,", swapacc = ",F8.5)') &
-                imc, N, V, N/V, U0(1:2), pm/Z, real(nswapacc*(Nswap+Nvol+Ntot))/(Z*real(Ntot))
+            write (logfd,'("NMC =",I10,", N =",2I5,", V =",2ES12.5,", rho =",&
+                & 2F9.6,", U =",2ES12.5,", p =",2F8.4,", mu =",2F8.4,&
+                & ", swapacc = ",F8.5)') &
+                imc, N, V, N/V, U0(1:2), pm/Z, mum/nmum, &
+                real(nswapacc*(Nswap+Nvol+Ntot))/(Z*real(Ntot))
+            call dump_xyz(imc)
         end if
-        if (imc <= Nburn) cycle
         call cumulate()
-        if (mod(imc-Nburn,mcblen) == 0) then
-            ib = (imc - Nburn) / mcblen
+        if (mod(imc,mcblen) == 0) then
+            ib = imc / mcblen
             mcblock(1, ib) = kT
             mcblock(2:3, ib) = rhom/Z
-            mcblock(4:5, ib) = pm/Z
-            mcblock(6:7, ib) = Um/Z
-            mcblock(8:9, ib) = Nm/Z
-            mcblock(10:11, ib) = Vm/Z
-            mcblock(12, ib) = real(nswapacc*(Ntot+Nvol+Nswap))/(Z*Ntot)
+            mcblock(4:5, ib) = -kT*log(mum/real(nmum))
+            mcblock(6:7, ib) = pm/Z
+            mcblock(8:9, ib) = Um/Z
+            mcblock(10:11, ib) = Nm/Z
+            mcblock(12:13, ib) = Vm/Z
+            mcblock(14, ib) = real(nswapacc*(Ntot+Nvol+Nswap))/(Z*Ntot)
+            mcblock(15:16, ib) = nmum
 
-            call dump_data(ib)
-            Z = 0; Um = 0; Nm = 0; pm = 0; Vm = 0; rhom = 0
+            call dump_avg(ib)
+            Z = 0; Um = 0; Nm = 0; pm = 0; Vm = 0; rhom = 0; mum = 0; nmum = 0
             nswapacc = 0
         end if
     enddo
@@ -138,23 +169,6 @@ subroutine populate_cube2(rs)
     deallocate(occupied)
 end subroutine
 
-pure function min_image(r)
-    implicit none
-    real*8, intent(in) :: r(3)
-    real*8 :: min_image(3)
-    integer :: i
-
-    do i=1,3
-        if (r(i) > 0.5) then
-            min_image(i) = r(i) - 1.0
-        elseif (r(i) < -0.5) then
-            min_image(i) = r(i) + 1.0
-        else
-            min_image(i) = r(i)
-        end if
-    end do
-end function
-
 pure function too_close(rsj, rs, blj)
     real*8, intent(in) :: rsj(3), rs(:,:), blj
     logical :: too_close
@@ -179,7 +193,7 @@ subroutine mc_move(jin)
     integer, intent(in) :: jin
     integer, parameter :: nstepcheck=200
     real*8 :: rso(3), rsn(3), dr(3), p, U0new(4)
-    integer :: ibox, j, i
+    integer :: ibox, j
 
     ibox = 1
     j = jin
@@ -196,7 +210,7 @@ subroutine mc_move(jin)
     rsn = rso + xstep(ibox) * (dr-0.5)
     rs(:,j,ibox) = rsn - floor(rsn)
 
-    U0new = total_energy(bl)
+    U0new = total_energy(bl, ibox)
     p = exp(-beta * sum(U0new(1:2) - U0(1:2)) )
     call random_number(rn)
     if (p>rn) then
@@ -227,6 +241,8 @@ subroutine mc_swap()
     isrc = 1 + int(2.0*rn)
     idest = 3 - isrc
 
+    if (N(isrc) == 0) return
+
     call random_number(rsn)
     if (too_close(rsn, rs(:,1:N(idest), idest), bl(idest)) ) return
 
@@ -245,9 +261,12 @@ subroutine mc_swap()
     U0new = total_energy(bl)
 
     pacc = pacc0 * exp( - beta * sum(U0new(1:2) - U0(1:2)) )
+    mum(idest) = mum(idest) + V(idest)/N(idest)*exp(-beta*(U0new(idest) - U0(idest) ))
+    nmum(idest) = nmum(idest) + 1
 
     call random_number(rn)
     if (pacc > rn) then
+        write (*,'(4G15.6,F6.4)') U0new(1:2), U0(1:2), pacc
         nswapacc = nswapacc + 1
         U0 = U0new
     else
@@ -294,31 +313,26 @@ subroutine mc_vol()
     end if
 end subroutine
 
-function total_energy(bln) result(utot)
+function total_energy(bln, ibox) result(utot)
+    implicit none
     real*8, intent(in) :: bln(2)
+    integer, intent(in), optional :: ibox
     real*8 :: utot(4)
-    real*8:: lrcorr(2), drs(3,Ntot), y6(Ntot), ui
-    integer :: i, j, ibox
+    real*8, allocatable ::  y(:)
 
-    utot = 0.0
-    do ibox=1,2
-     do i=1,N(ibox)-1
-         do j=i+1, N(ibox)
-             drs(:,j) = min_image(rs(:,i, ibox) - rs(:,j, ibox))
-         end do
-         y6(i+1:N(ibox)) = 1.0/sum(drs(:,i+1:N(ibox))**2, 1)**3
-         forall( j=i+1:N(ibox), y6(j) < 64.0)
-             y6(j) = 0.0
-         end forall
-         y6(i+1:N(ibox)) = y6(i+1:N(ibox)) * (1.0/bln(ibox)**6)
-         ui = sum(y6(i+1:N(ibox))**2 - y6(i+1:N(ibox)))
-         utot(ibox) = utot(ibox) + ui
-         utot(ibox+2) = utot(ibox+2) + 12.0*ui + 6.0*sum(y6(i+1:N(ibox)))
-     end do
-    end do
-    utot = utot * 4.0
-    !lrcorr = real(N**2)/bln**3*8.0/9.0*M_PI*(2.0**9/bln**9 - 24.0/bln**3)
-    !Sutot(1:2) = utot(1:2) + lrcorr
+    allocate(y(1+9*Ntot))
+    
+    if (present(ibox)) then
+        Utot = U0
+        call vgw0(rs(:,1:N(ibox),ibox)*bln(ibox), bln(ibox), beta, &
+            0d0, Utot(ibox), y)
+    else
+        call vgw0(rs(:,1:N(1),1)*bln(1), bln(1), beta, 0d0, Utot(1), y)
+        call vgw0(rs(:,1:N(2),2)*bln(2), bln(2), beta, 0d0, Utot(2), y)
+    end if
+    Utot(3:4) = 0.0
+    
+    deallocate(y)
 end function
 
 subroutine cumulate()
@@ -334,7 +348,7 @@ subroutine cumulate()
     end do
 end subroutine
 
-subroutine dump_data(nmcb)
+subroutine dump_avg(nmcb)
     implicit none
     integer, intent(in) :: nmcb
     integer :: i
@@ -342,7 +356,52 @@ subroutine dump_data(nmcb)
 
     write(fname, '("qgibbs_Um_",F5.2,"_NMC.dat")') kT
     open(30,file=trim(fname))
-    write(30,'(I10, 12ES16.7)') (i*mcblen+Nburn, mcblock(:,i), i=1,nmcb)
+    write(30,'(I10, 16ES16.7)') (i*mcblen, mcblock(:,i), i=1,nmcb)
     close(30)
 end subroutine
-end program gibbs3
+
+subroutine dump_xyz(nmcnow)
+    implicit none
+    integer, intent(in) :: nmcnow
+    character(len=256) :: fname
+    integer :: ibox
+
+    write(fname, '("qgibbs_",I10,".xyz")') nmcnow
+    call replace_char(fname, ' ', '0')
+    open(33,file=trim(fname),status='REPLACE')
+    do ibox=1,2
+        write(33,*) N(ibox)
+        write(33,*) bl(ibox)
+        write(33,'(("X ", 3F13.8))') rs(:,1:N(ibox),ibox)
+    end do
+    close(33)
+end subroutine
+
+subroutine load_xyz(fname)
+    character(*), intent(in) :: fname
+    character(16) :: aname
+    real*8, allocatable :: rs1(:,:), rs2(:,:)
+    integer :: i
+    
+    open(33, file=trim(fname),action='READ')
+    read(33, *) N(1)
+    read(33, *) bl(1)
+    allocate( rs1( 3, N(1) ) )
+    read(33, *) (aname, rs1(:,i), i=1,N(1))
+    
+    read(33, *) N(2)
+    read(33, *) bl(2)
+    allocate( rs2( 3, N(2) ) )
+    read(33, *) (aname, rs2(:,i), i=1,N(2))
+    close(33)
+    
+    Ntot = sum(N)
+    V = bl**3
+    Vtot = sum(V)
+    
+    allocate(rs(3,Ntot,2))
+    rs(:,1:N(1),1) = rs1
+    rs(:,1:N(2),2) = rs2
+    deallocate(rs1, rs2)
+end subroutine load_xyz
+end program qgibbs
