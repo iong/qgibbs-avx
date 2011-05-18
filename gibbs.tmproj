@@ -3,7 +3,7 @@
 <plist version="1.0">
 <dict>
 	<key>currentDocument</key>
-	<string>Dropbox/src/gibbs2/qgibbs.f90</string>
+	<string>Makefile</string>
 	<key>documents</key>
 	<array>
 		<dict>
@@ -16,108 +16,173 @@
 			<key>filename</key>
 			<string>potential_energy.f90</string>
 			<key>lastUsed</key>
-			<date>2011-05-10T06:15:10Z</date>
+			<date>2011-05-17T22:37:55Z</date>
 		</dict>
 		<dict>
 			<key>filename</key>
 			<string>qgibbs.f90</string>
 			<key>lastUsed</key>
-			<date>2011-05-10T06:19:16Z</date>
-			<key>selected</key>
-			<true/>
+			<date>2011-05-18T02:03:58Z</date>
+		</dict>
+		<dict>
+			<key>filename</key>
+			<string>rhss1.f90</string>
+			<key>lastUsed</key>
+			<date>2011-05-18T01:53:58Z</date>
 		</dict>
 		<dict>
 			<key>filename</key>
 			<string>rhss0.f90</string>
 			<key>lastUsed</key>
-			<date>2011-05-10T05:43:26Z</date>
+			<date>2011-05-18T01:54:02Z</date>
 		</dict>
 		<dict>
 			<key>filename</key>
 			<string>vgw.f90</string>
 			<key>lastUsed</key>
-			<date>2011-05-10T06:19:16Z</date>
+			<date>2011-05-18T01:58:56Z</date>
+		</dict>
+		<dict>
+			<key>children</key>
+			<array>
+				<dict>
+					<key>filename</key>
+					<string>config/gcc.mk</string>
+					<key>lastUsed</key>
+					<date>2011-05-12T20:53:44Z</date>
+				</dict>
+				<dict>
+					<key>filename</key>
+					<string>config/intel.mk</string>
+					<key>lastUsed</key>
+					<date>2011-05-18T01:57:12Z</date>
+				</dict>
+				<dict>
+					<key>filename</key>
+					<string>config/pgi.mk</string>
+				</dict>
+			</array>
+			<key>expanded</key>
+			<true/>
+			<key>name</key>
+			<string>config</string>
 		</dict>
 		<dict>
 			<key>filename</key>
 			<string>Makefile</string>
 			<key>lastUsed</key>
-			<date>2011-05-10T06:13:32Z</date>
+			<date>2011-05-18T02:04:45Z</date>
+			<key>selected</key>
+			<true/>
 		</dict>
 		<dict>
 			<key>filename</key>
 			<string>vgw0.f90</string>
 			<key>lastUsed</key>
-			<date>2011-05-10T06:18:47Z</date>
+			<date>2011-05-18T02:04:45Z</date>
+		</dict>
+		<dict>
+			<key>filename</key>
+			<string>gibbs3.f90</string>
+			<key>lastUsed</key>
+			<date>2011-05-18T01:19:59Z</date>
 		</dict>
 	</array>
 	<key>fileHierarchyDrawerWidth</key>
 	<integer>200</integer>
 	<key>metaData</key>
 	<dict>
-		<key>Dropbox/src/gibbs2/Makefile</key>
+		<key>Makefile</key>
 		<dict>
 			<key>caret</key>
 			<dict>
 				<key>column</key>
-				<integer>1</integer>
+				<integer>17</integer>
 				<key>line</key>
-				<integer>64</integer>
+				<integer>9</integer>
 			</dict>
 			<key>firstVisibleColumn</key>
 			<integer>0</integer>
 			<key>firstVisibleLine</key>
-			<integer>34</integer>
+			<integer>21</integer>
 		</dict>
-		<key>Dropbox/src/gibbs2/interaction_lists.f90</key>
+		<key>config/gcc.mk</key>
+		<dict>
+			<key>caret</key>
+			<dict>
+				<key>column</key>
+				<integer>7</integer>
+				<key>line</key>
+				<integer>5</integer>
+			</dict>
+			<key>firstVisibleColumn</key>
+			<integer>0</integer>
+			<key>firstVisibleLine</key>
+			<integer>0</integer>
+		</dict>
+		<key>config/intel.mk</key>
+		<dict>
+			<key>caret</key>
+			<dict>
+				<key>column</key>
+				<integer>16</integer>
+				<key>line</key>
+				<integer>10</integer>
+			</dict>
+			<key>firstVisibleColumn</key>
+			<integer>0</integer>
+			<key>firstVisibleLine</key>
+			<integer>0</integer>
+		</dict>
+		<key>gibbs3.f90</key>
+		<dict>
+			<key>caret</key>
+			<dict>
+				<key>column</key>
+				<integer>37</integer>
+				<key>line</key>
+				<integer>30</integer>
+			</dict>
+			<key>firstVisibleColumn</key>
+			<integer>0</integer>
+			<key>firstVisibleLine</key>
+			<integer>0</integer>
+		</dict>
+		<key>potential_energy.f90</key>
+		<dict>
+			<key>caret</key>
+			<dict>
+				<key>column</key>
+				<integer>12</integer>
+				<key>line</key>
+				<integer>9</integer>
+			</dict>
+			<key>firstVisibleColumn</key>
+			<integer>0</integer>
+			<key>firstVisibleLine</key>
+			<integer>5</integer>
+		</dict>
+		<key>qgibbs.f90</key>
+		<dict>
+			<key>caret</key>
+			<dict>
+				<key>column</key>
+				<integer>50</integer>
+				<key>line</key>
+				<integer>335</integer>
+			</dict>
+			<key>firstVisibleColumn</key>
+			<integer>0</integer>
+			<key>firstVisibleLine</key>
+			<integer>290</integer>
+		</dict>
+		<key>rhss0.f90</key>
 		<dict>
 			<key>caret</key>
 			<dict>
 				<key>column</key>
 				<integer>0</integer>
 				<key>line</key>
-				<integer>1</integer>
-			</dict>
-			<key>firstVisibleColumn</key>
-			<integer>0</integer>
-			<key>firstVisibleLine</key>
-			<integer>0</integer>
-		</dict>
-		<key>Dropbox/src/gibbs2/potential_energy.f90</key>
-		<dict>
-			<key>caret</key>
-			<dict>
-				<key>column</key>
-				<integer>0</integer>
-				<key>line</key>
-				<integer>22</integer>
-			</dict>
-			<key>firstVisibleColumn</key>
-			<integer>0</integer>
-			<key>firstVisibleLine</key>
-			<integer>0</integer>
-		</dict>
-		<key>Dropbox/src/gibbs2/qgibbs.f90</key>
-		<dict>
-			<key>caret</key>
-			<dict>
-				<key>column</key>
-				<integer>14</integer>
-				<key>line</key>
-				<integer>308</integer>
-			</dict>
-			<key>firstVisibleColumn</key>
-			<integer>0</integer>
-			<key>firstVisibleLine</key>
-			<integer>276</integer>
-		</dict>
-		<key>Dropbox/src/gibbs2/rhss0.f90</key>
-		<dict>
-			<key>caret</key>
-			<dict>
-				<key>column</key>
-				<integer>0</integer>
-				<key>line</key>
 				<integer>0</integer>
 			</dict>
 			<key>firstVisibleColumn</key>
@@ -125,48 +190,50 @@
 			<key>firstVisibleLine</key>
 			<integer>0</integer>
 		</dict>
-		<key>Dropbox/src/gibbs2/vgw.f90</key>
+		<key>vgw.f90</key>
 		<dict>
 			<key>caret</key>
 			<dict>
 				<key>column</key>
-				<integer>13</integer>
+				<integer>4</integer>
 				<key>line</key>
-				<integer>154</integer>
+				<integer>49</integer>
 			</dict>
 			<key>firstVisibleColumn</key>
 			<integer>0</integer>
 			<key>firstVisibleLine</key>
-			<integer>154</integer>
+			<integer>9</integer>
 		</dict>
-		<key>Dropbox/src/gibbs2/vgw0.f90</key>
+		<key>vgw0.f90</key>
 		<dict>
 			<key>caret</key>
 			<dict>
 				<key>column</key>
-				<integer>55</integer>
+				<integer>12</integer>
 				<key>line</key>
-				<integer>3</integer>
+				<integer>63</integer>
 			</dict>
 			<key>firstVisibleColumn</key>
 			<integer>0</integer>
 			<key>firstVisibleLine</key>
-			<integer>40</integer>
+			<integer>0</integer>
 		</dict>
 	</dict>
 	<key>openDocuments</key>
 	<array>
-		<string>Dropbox/src/gibbs2/rhss0.f90</string>
-		<string>Dropbox/src/gibbs2/vgw.f90</string>
-		<string>Dropbox/src/gibbs2/interaction_lists.f90</string>
-		<string>Dropbox/src/gibbs2/potential_energy.f90</string>
-		<string>Dropbox/src/gibbs2/vgw0.f90</string>
-		<string>Dropbox/src/gibbs2/Makefile</string>
-		<string>Dropbox/src/gibbs2/qgibbs.f90</string>
+		<string>vgw0.f90</string>
+		<string>qgibbs.f90</string>
+		<string>config/intel.mk</string>
+		<string>Makefile</string>
+		<string>rhss0.f90</string>
+		<string>gibbs3.f90</string>
+		<string>config/gcc.mk</string>
+		<string>potential_energy.f90</string>
+		<string>vgw.f90</string>
 	</array>
 	<key>showFileHierarchyDrawer</key>
 	<true/>
 	<key>windowFrame</key>
-	<string>{{555, 33}, {706, 709}}</string>
+	<string>{{632, 94}, {783, 1027}}</string>
 </dict>
 </plist>
