@@ -92,9 +92,10 @@ program qgibbs
         write (*,*) imc
         call cumulate()
         if (mod(imc,100000) == 0) then
-            write (logfd,'("NMC =",I10,", N =",2I5,", V =",2F9.2,", rho =",&
-                & 2F9.6,", U =",2F15.6,", p =",2F8.4)') &
+            write (logfd,'("NMC =",I10,", N =",2I5,", V =",2F12.2,", rho =",&
+                & 2F9.6,", U =",2F14.4,", p =",2F8.4)') &
                 imc, N, V, N/V, U0(1:2), pm/Z
+            flush(logfd)
             call dump_xyz(imc)
         end if
     end do
@@ -111,11 +112,12 @@ program qgibbs
             call mc_vol()
         endif
         if (mod(imc,100000) == 0) then
-            write (logfd,'("NMC =",I10,", N =",2I5,", V =",2ES12.5,", rho =",&
-                & 2F9.6,", U =",2ES12.5,", p =",2F8.4,", mu =",2F8.4,&
+            write (logfd,'("NMC =",I10,", N =",2I5,", V =",2F12.2,", rho =",&
+                & 2F9.6,", U =",2F14.4,", p =",2F8.4,", mu =",2F12.4,&
                 & ", swapacc = ",F8.5)') &
                 imc, N, V, N/V, U0(1:2), pm/Z, mum/nmum, &
                 real(nswapacc*(Nswap+Nvol+Ntot))/(Z*real(Ntot))
+            flush(logfd)
             call dump_xyz(imc)
         end if
         call cumulate()
@@ -317,22 +319,23 @@ function total_energy(bln, ibox) result(utot)
     implicit none
     real*8, intent(in) :: bln(2)
     integer, intent(in), optional :: ibox
-    real*8 :: utot(4)
-    real*8, allocatable ::  y(:)
-
-    allocate(y(1+9*Ntot))
+    real*8 :: utot(4), fx(3, Ntot)
     
     if (present(ibox)) then
         Utot = U0
         call vgw0(rs(:,1:N(ibox),ibox)*bln(ibox), bln(ibox), beta, &
-            0d0, Utot(ibox), y)
+            0d0, Utot(ibox), fx(:,1:N(ibox)))
+        Utot(ibox + 2) = sum(fx(:,1:N(ibox)) * rs(:,1:N(ibox),ibox)) * bln(ibox)
     else
-        call vgw0(rs(:,1:N(1),1)*bln(1), bln(1), beta, 0d0, Utot(1), y)
-        call vgw0(rs(:,1:N(2),2)*bln(2), bln(2), beta, 0d0, Utot(2), y)
+        call vgw0(rs(:,1:N(1),1)*bln(1), bln(1), beta, 0d0, Utot(1), &
+            fx(:,1:N(1)))
+        Utot(3) = sum(fx(:,1:N(1)) * rs(:,1:N(1),1)) * bln(1)
+        
+        call vgw0(rs(:,1:N(2),2)*bln(2), bln(2), beta, 0d0, Utot(2), &
+            fx(:,1:N(2)))
+        Utot(4) = sum(fx(:,1:N(2)) * rs(:,1:N(2),2)) * bln(2)
     end if
     Utot(3:4) = 0.0
-    
-    deallocate(y)
 end function
 
 subroutine cumulate()
@@ -356,7 +359,7 @@ subroutine dump_avg(nmcb)
 
     write(fname, '("qgibbs_Um_",F5.2,"_NMC.dat")') kT
     open(30,file=trim(fname))
-    write(30,'(I10, 16ES16.7)') (i*mcblen, mcblock(:,i), i=1,nmcb)
+    write(30,'(I10, F5.2,2F10.6,2F10.3,2G13.5,2F13.3,2F10.3,2F14.2,F8.4,2F9.1)') (i*mcblen, mcblock(:,i), i=1,nmcb)
     close(30)
 end subroutine
 

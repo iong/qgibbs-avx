@@ -1,19 +1,20 @@
-SUBROUTINE vgw0v(Q0, BL_, TAUMAX,TAUI, W, Y)
+SUBROUTINE vgw0v(Q0, BL_, TAUMAX,TAUI, W, WX)
     use omp_lib
     IMPLICIT NONE
     REAL*8, intent(in) :: Q0(:,:), TAUMAX(:), TAUI, BL_
-    REAL*8, intent(inout) :: Y(:)
     REAL*8, intent(out) :: W(:)
-    real*8 :: G(3,3), T, LOGDET
-    real*8 :: DT, YP(1+9*size(Q0, 2)), next_stop
-    integer :: i, j, NEQ, chunk_size
+    real*8, intent(out), optional :: WX(:,:)
+    real*8 :: LOGDET
+    real*8 :: DT, next_stop
+    integer :: i, j, chunk_size
+    logical :: mm = .FALSE.
 
 
     Natom = size(Q0, 2)
-    NEQ = 1 + 9*size(Q0, 2)
     BL = BL_
+    if (present(WX)) mm = .TRUE.
 
-!$OMP PARALLEL PRIVATE(I,J, G, T, DT, next_stop)
+!$OMP PARALLEL PRIVATE(I,J, T, DT, next_stop)
     if (TAUI <= 0.0d0) then
         T = TAUMIN
     else
@@ -33,8 +34,9 @@ SUBROUTINE vgw0v(Q0, BL_, TAUMAX,TAUI, W, Y)
 
     if (TAUI <= 0.0d0) then
         call interaction_lists(Q0) !Determine which particles
-        call init_gaussians(Q0, TAUMIN, y)
-    endif
+        call init_gaussians(Q0, TAUMIN, mm)
+    end if
+    
 !$OMP BARRIER
     do i=1,size(TAUMAX)
         next_stop = 0.5d0*TAUMAX(i)
@@ -46,7 +48,7 @@ SUBROUTINE vgw0v(Q0, BL_, TAUMAX,TAUI, W, Y)
             else
                 T = T + DT
             end if
-            call RHSS0(NEQ, DT, Y, YP)
+            call RHSS0(DT, mm)
             if (T == next_stop) exit
         end do
 
@@ -55,32 +57,36 @@ SUBROUTINE vgw0v(Q0, BL_, TAUMAX,TAUI, W, Y)
 !$OMP END SINGLE
 !$OMP DO SCHEDULE(STATIC) REDUCTION(+:LOGDET)
         DO j=1,Natom
-            call unpack_g_i(y, j, G)
-            LOGDET = LOGDET + LOG(DETM(G))
+            LOGDET = LOGDET + LOG(DETM(G(:,:,j)))
         ENDDO
 !$OMP END DO
 
-
-        !The constant should be irrelevant for MC and FX. don't forget to
-        !add it to the Cv
-        !W(i)=-(1/TAUMAX(i))*(2.0*y(1) - 0.5*LOGDET - 3.0*Natom*log(2.0*sqrt(M_PI)))
 !$OMP MASTER
-        W(i)=-(1/TAUMAX(i))*(2.0*y(1) - 0.5*LOGDET)
+        W(i)=-(1/TAUMAX(i))*(2.0*gama - 0.5*LOGDET - 3.0*Natom*log(2.0*sqrt(M_PI)))
 !$OMP END MASTER
     end do
 !$OMP END PARALLEL
+
+    if (present(WX)) then
+        WX(:,1:Natom) =  gamak(:,1:Natom) / T
+    end if
 END SUBROUTINE
 
 
-SUBROUTINE vgw0(Q0, BL_, TAUMAX,TAUI, W, Y)
+SUBROUTINE vgw0(Q0, BL_, TAUMAX,TAUI, W, WX)
 IMPLICIT NONE
 REAL*8, intent(in) :: Q0(:,:), TAUMAX, TAUI, BL_
-REAL*8, intent(inout) :: Y(:)
 REAL*8, intent(out) :: W
+real*8, intent(out), optional :: WX(:,:)
+
 real*8, dimension(1) :: W_, TAUMAX_
 
     TAUMAX_(1) = TAUMAX
-    call vgw0v(Q0, BL_, TAUMAX_, TAUI, W_, Y)
+    if (present(WX)) then
+        call vgw0v(Q0, BL_, TAUMAX_, TAUI, W_, WX)
+    else
+        call vgw0v(Q0, BL_, TAUMAX_, TAUI, W_)
+    end if
     W = W_(1)
 END SUBROUTINE
 
