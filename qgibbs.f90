@@ -80,9 +80,9 @@ program qgibbs
 
     beta = 1.0/kT
 
-    rhcore = 2.4
+    rhcore = 2.85
 
-    call vgwinit(Ntot, 'pH2')
+    call vgwinit(Ntot, 'pH2-4g')
     U0 = total_energy(bl)
 
     do imc=1,Nequil

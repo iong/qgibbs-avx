@@ -39,10 +39,19 @@ subroutine vgwinit(Nmax_, species, M, rcutoff)
         GP(3,3,Nmax))
     
     
-    if (species=='pH2') then
+    if (species=='pH2-3g') then
         NGAUSS=3
         LJA(1:3) = (/ 0.669311, 0.199426, 0.092713/)
         LJC(1:3) = (/ 29380.898517, -303.054026, -40.574585 /)
+        mass = 2.0
+        rc = 8.0
+        TAUMIN=1d-4
+    else if (species=='pH2-4g') then
+            NGAUSS=4
+        LJA(1:4) = (/ 1.038252215127D0, 0.5974039109464D0, 0.196476572277834D0, &
+                    0.06668611771781D0 /)
+        LJC(1:4) = (/ 96609.488289873d0, 14584.62075507514d0, -365.460614956589d0, &
+                    -19.5534697800036d0 /)
         mass = 2.0
         rc = 8.0
         TAUMIN=1d-4
