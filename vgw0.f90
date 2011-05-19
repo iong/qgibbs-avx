@@ -41,7 +41,7 @@ SUBROUTINE vgw0v(Q0, BL_, TAUMAX,TAUI, W, WX)
     do i=1,size(TAUMAX)
         next_stop = 0.5d0*TAUMAX(i)
         do
-            DT = 1d-2*sqrt(T)
+            DT = 1d-4!1d-2*sqrt(T)
             if (T+DT > next_stop) then
                 DT = next_stop - T
                 T = next_stop
@@ -62,7 +62,7 @@ SUBROUTINE vgw0v(Q0, BL_, TAUMAX,TAUI, W, WX)
 !$OMP END DO
 
 !$OMP MASTER
-        W(i)=-(1/TAUMAX(i))*(2.0*gama - 0.5*LOGDET - 3.0*Natom*log(2.0*sqrt(M_PI)))
+        W(i)=-(1/TAUMAX(i))*(2.0*gama - 0.5*LOGDET)! - 3.0*Natom*log(2.0*sqrt(M_PI)))
 !$OMP END MASTER
     end do
 !$OMP END PARALLEL

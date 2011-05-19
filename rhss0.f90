@@ -3,7 +3,7 @@ SUBROUTINE RHSS0(DT, mm)
     IMPLICIT NONE
     REAL*8, intent(in) :: DT
     logical, intent(in) :: mm
-    INTEGER :: J,I1,I2,IG,CNT,CNT2, NN1
+    INTEGER :: J,I1,I2,IG, NN1
     REAL*8 AG(3,3),GU(3,3), &
             DETA,DETAG,GUG(3,3),UX(3,nnbmax),UXX(3,3, nnbmax),QZQ,EXPAV, &
             G12(3,3),A(3,3), &
