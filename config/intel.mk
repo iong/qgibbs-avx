@@ -8,7 +8,7 @@ else ifeq ($(CPU),intel)
     OPTFLAGS=-ipo -O3 -no-prec-div -xSSE4.2
 # Host
 else
-    OPTFLAGS=-O2
+    OPTFLAGS=-fast
 endif
 DBGFLAGS=-O0 -g -warn unused
 FDBG:=-fpe0 -traceback -check all -ftrapuv
