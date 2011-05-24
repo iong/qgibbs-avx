@@ -80,7 +80,7 @@ subroutine init_gaussians(q0, tau, mm)
     end if
 
 !$OMP SINGLE
-    gama = -tau*sum(U)
+    gama = -tau*sum(U(0:nthr-1))
     Q(:,1:Natom) = Q0
 
     G(:,:,1:Natom) = spread(tau*invmass*E3, 3, Natom)
