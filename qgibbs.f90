@@ -323,19 +323,23 @@ function total_energy(bln, ibox) result(utot)
     
     if (present(ibox)) then
         Utot = U0
-        call vgw0(rs(:,1:N(ibox),ibox)*bln(ibox), bln(ibox), beta, &
-            0d0, Utot(ibox), fx(:,1:N(ibox)))
+        
+        call vgw0v(rs(:,1:N(ibox),ibox)*bln(ibox), bln(ibox), (/ beta /), &
+            0d0, Utot(ibox:ibox), fx(:,1:N(ibox)) )
+            
         Utot(ibox + 2) = sum(fx(:,1:N(ibox)) * rs(:,1:N(ibox),ibox)) * bln(ibox)
     else
-        call vgw0(rs(:,1:N(1),1)*bln(1), bln(1), beta, 0d0, Utot(1), &
-            fx(:,1:N(1)))
+        
+        call vgw0v(rs(:,1:N(1),1)*bln(1), bln(1), (/ beta /), 0d0, Utot(1:1), &
+            fx(:,1:N(1)) )
+            
         Utot(3) = sum(fx(:,1:N(1)) * rs(:,1:N(1),1)) * bln(1)
         
-        call vgw0(rs(:,1:N(2),2)*bln(2), bln(2), beta, 0d0, Utot(2), &
-            fx(:,1:N(2)))
+        call vgw0v(rs(:,1:N(2),2)*bln(2), bln(2), (/ beta /), 0d0, Utot(2:2), &
+            fx(:,1:N(2)) )
+            
         Utot(4) = sum(fx(:,1:N(2)) * rs(:,1:N(2),2)) * bln(2)
     end if
-    Utot(3:4) = 0.0
 end function
 
 subroutine cumulate()
