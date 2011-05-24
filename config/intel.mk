@@ -15,3 +15,4 @@ FDBG:=-fpe0 -traceback -check all -ftrapuv
 FFLAGS:=-openmp
 LDFLAGS:=$(LDFLAGS) -openmp
 
+LAPACK := -mkl=sequential
