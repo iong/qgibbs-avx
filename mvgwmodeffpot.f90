@@ -179,9 +179,10 @@ contains
     END SUBROUTINE INITIALIZE_VGWM
 
     SUBROUTINE VGWMQUENCH(Q,BETAMAX,EFFPOT)
-
         IMPLICIT NONE
-        DOUBLE PRECISION :: Q(N3ATOM),QT(N3ATOM),UGAUSS,BETAMAX,EFFPOT
+        DOUBLE PRECISION, intent(in) :: Q(3,N_atom), BETAMAX
+        DOUBLE PRECISION, intent(out) :: EFFPOT
+        DOUBLE PRECISION :: QT(N3ATOM),UGAUSS
         INTEGER :: N_STEP,I,J,K,CNT
 
         Y=0.0D0
@@ -189,9 +190,9 @@ contains
         CALL INITDLSODE
 
         IF(PBC) THEN
-            QT=BL*Q
+            QT=BL*reshape(Q, (/ N3atom /) )
         ELSE
-            QT=Q
+            QT=reshape(Q, (/ N3atom /) )
         ENDIF
 
         IF(RCUT.GT.0) CALL PAIRS(QT)
@@ -322,11 +323,17 @@ contains
         DOUBLE PRECISION :: DET,A(3,3),M(3,3)
 
         M(1,1) = A(2,2)*A(3,3)-A(2,3)**2
+        M(2,1) = -A(1,2)*A(3,3)+A(1,3)*A(2,3)
+        M(3,1) = A(1,2)*A(2,3)-A(1,3)*A(2,2)
+
+        M(1,2) = M(2,1)
         M(2,2) = A(1,1)*A(3,3)-A(1,3)**2
+        M(3,2) = -A(1,1)*A(2,3)+A(1,3)*A(1,2)
+
+        M(1,3) = M(3,1)
+        M(2,3) = M(3,2)
         M(3,3) = A(1,1)*A(2,2)-A(1,2)**2
-        M(1,2) = -A(1,2)*A(3,3)+A(1,3)*A(2,3)
-        M(1,3) = A(1,2)*A(2,3)-A(1,3)*A(2,2)
-        M(2,3) = -A(1,1)*A(2,3)+A(1,3)*A(1,2)
+
         DET = M(1,1)*A(1,1)+M(1,2)*A(1,2)+M(1,3)*A(1,3)
 
     END SUBROUTINE INVDET
