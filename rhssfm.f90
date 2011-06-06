@@ -57,8 +57,11 @@ SUBROUTINE RHSSFM(DT, mm)
             UX(I2_3 : I2_3 + 2) = UX(I2_3 : I2_3 + 2) - UX0
             UXY(I1_3 : I1_3 + 2, I1_3 : I1_3 + 2) = UXY(I1_3 : I1_3 + 2, I1_3 : I1_3 + 2) + UXY0
             UXY(I2_3 : I2_3 + 2, I2_3 : I2_3 + 2) = UXY(I2_3 : I2_3 + 2, I2_3 : I2_3 + 2) + UXY0
-            UXY(I1_3 : I1_3 + 2, I2_3 : I2_3 + 2) = -UXY0
-            UXY(I2_3 : I2_3 + 2, I1_3 : I1_3 + 2) = -transpose(UXY0)
+            
+            !if (sum(q12**2) <= rfullmatsq) then
+                UXY(I1_3 : I1_3 + 2, I2_3 : I2_3 + 2) = -UXY0
+                UXY(I2_3 : I2_3 + 2, I1_3 : I1_3 + 2) = -UXY0
+            !end if
         end do ! I2
     end do ! I1
 
@@ -70,6 +73,19 @@ SUBROUTINE RHSSFM(DT, mm)
     do J=1,3*Natom
         GP(J,J) = GP(J,J) + invmass
     end do
+
+!    do I1=1,Natom-1
+!        I1_3 = 3*(I1-1) + 1
+!        DO I2=I1+1,Natom
+!            I2_3 = 3*(I2-1) + 1
+!            Q12 = Q(I1_3:I1_3+2) - Q(I2_3:I2_3+2)
+!            Q12 = min_image(Q12, bl)
+!            if (sum(q12**2) > rfullmatsq) then
+!                GP(I1_3 : I1_3 + 2, I2_3 : I2_3 + 2) = 0
+!                GP(I2_3 : I2_3 + 2, I1_3 : I1_3 + 2) = 0
+!           end if
+!        end do
+!    end do
     
     gamap = -0.25d0 * sum(UXY*G) - U
 
