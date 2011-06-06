@@ -5,7 +5,7 @@ module vgwfm
     public :: vgwfminit, vgw0fm,vgwfmcleanup
     
     integer :: Natom, Nmax
-    real*8 :: BL
+    real*8 :: BL, rfullmatsq = 36d0
     real*8, dimension(10) :: LJA, LJC
     integer :: NGAUSS
     
