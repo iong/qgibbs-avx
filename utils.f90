@@ -1,5 +1,5 @@
 module utils
-    real*8 :: M_PI = 3.14159265358979323846264338327950288d0
+    double precision :: M_PI = 3.14159265358979323846264338327950288d0
     interface min_image
         module procedure min_image1
         module procedure min_image2
@@ -16,10 +16,10 @@ subroutine seed_rng()
         call random_seed(PUT=seed(1:seed_size))
 end subroutine
 
-real*8 function gaussran(sigma, x0) result(y)
+double precision function gaussran(sigma, x0) result(y)
     implicit none
-    real*8, intent(in) :: sigma, x0
-    real*8 :: x(2)
+    double precision, intent(in) :: sigma, x0
+    double precision :: x(2)
     do
     call random_number(x)
         if (x(1) /= 0.0d0) exit
@@ -31,9 +31,9 @@ real*8 function gaussran(sigma, x0) result(y)
 end function gaussran
 
 subroutine pol2cart(pol, cart)
-    real*8, intent(in) :: pol(3)
-    real*8, intent(out) :: cart(3)
-    real*8 :: rxy
+    double precision, intent(in) :: pol(3)
+    double precision, intent(out) :: cart(3)
+    double precision :: rxy
 
     rxy = pol(1) * sin(pol(2))
     cart(1) = rxy * cos(pol(3))
@@ -62,11 +62,11 @@ subroutine int2strz(n, w, str0)
 end subroutine int2strz
 
 subroutine linspace(xmin, xmax, N, xout)
-    real*8, intent(in) :: xmin, xmax
+    double precision, intent(in) :: xmin, xmax
     integer, intent(in) :: N
-    real*8, intent(out) :: xout(N)
+    double precision, intent(out) :: xout(N)
     integer :: i
-    real*8:: dx
+    double precision:: dx
 
     dx = (xmax - xmin) / (N-1)
     xout = xmin + dx * (/(i,i=0,N-1)/)
@@ -85,8 +85,8 @@ subroutine replace_char(str, a, b)
 end subroutine replace_char
 
 function fliplr(v) result(y)
-    real*8, intent(in) :: v(:)
-    real*8 :: y(size(v))
+    double precision, intent(in) :: v(:)
+    double precision :: y(size(v))
     integer :: i, N
 
     N = size(v)
@@ -97,9 +97,9 @@ end function
 
 subroutine detminvm(A, DETA, INVA)
     implicit none
-    real*8, intent(in) :: A(3,3)
-    real*8, intent(out) :: DETA, INVA(3,3)
-    real*8 :: INVDET
+    double precision, intent(in) :: A(3,3)
+    double precision, intent(out) :: DETA, INVA(3,3)
+    double precision :: INVDET
 
     INVA(1,1) = A(2,2)*A(3,3)-A(2,3)*A(3,2)
     INVA(2,1) = -A(1,2)*A(3,3)+A(1,3)*A(3,2)
@@ -118,8 +118,8 @@ end subroutine detminvm
 
 pure function detm(A)
     implicit none
-    real*8, intent(in) :: A(3,3)
-    real*8 :: DETM
+    double precision, intent(in) :: A(3,3)
+    double precision :: DETM
 
     DETM = (A(2,2)*A(3,3) - A(2,3)*A(3,2)) * A(1,1)&
           + ( -A(1,2)*A(3,3) + A(1,3)*A(3,2) ) * A(2,1) &
@@ -127,8 +127,8 @@ pure function detm(A)
 end function detm
 
 function outer_product(l, r) result(m)
-    real*8, intent(in) :: l(:), r(:)
-    real*8 :: m(size(l), size(r))
+    double precision, intent(in) :: l(:), r(:)
+    double precision :: m(size(l), size(r))
     integer :: i
 
     forall (i=1:size(r))
@@ -137,8 +137,8 @@ function outer_product(l, r) result(m)
 end function outer_product
 
 pure function outer_product3(l, r) result(m)
-    real*8, intent(in) :: l(3), r(3)
-    real*8 :: m(3,3)
+    double precision, intent(in) :: l(3), r(3)
+    double precision :: m(3,3)
     integer :: i
 
     forall (i=1:3)
@@ -148,8 +148,8 @@ end function outer_product3
 
 pure function min_image1(r)
     implicit none
-    real*8, intent(in) :: r(3)
-    real*8 :: min_image1(3)
+    double precision, intent(in) :: r(3)
+    double precision :: min_image1(3)
     integer :: i
 
     do i=1,3
@@ -165,9 +165,9 @@ end function
 
 pure function min_image2(r, bl)
     implicit none
-    real*8, intent(in) :: r(3), bl
-    real*8 :: min_image2(3)
-    real*8 :: bl2
+    double precision, intent(in) :: r(3), bl
+    double precision :: min_image2(3)
+    double precision :: bl2
 
     bl2=0.5d0*bl
     where (abs(r) > bl2)
