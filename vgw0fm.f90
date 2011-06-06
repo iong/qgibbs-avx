@@ -1,7 +1,7 @@
-SUBROUTINE vgw0fm(Q0, BL_, TAUMAX,TAUI, W)
+SUBROUTINE vgw0fm(Q0, BL_, TAUMAX,W)
     use omp_lib
     IMPLICIT NONE
-    REAL*8, intent(in) :: Q0(:,:), TAUMAX, TAUI, BL_
+    REAL*8, intent(in) :: Q0(:,:), TAUMAX, BL_
     REAL*8, intent(out) :: W
     real*8 :: GDET
     real*8 :: DT, next_stop
@@ -12,18 +12,12 @@ SUBROUTINE vgw0fm(Q0, BL_, TAUMAX,TAUI, W)
     Natom = size(Q0, 2)
     BL = BL_
 
-    if (TAUI <= 0.0d0) then
-        T = TAUMIN
-    else
-        T = 0.5*TAUI
-    endif
+    call init_gaussians(Q0, TAUMIN)
+    T = TAUMIN
 
-    if (TAUI <= 0.0d0) then
-        call init_gaussians(Q0, TAUMIN)
-    end if
     next_stop = 0.5d0*TAUMAX
     do
-        DT = 1d-5!1d-2*sqrt(T)
+        DT = 1d-2*sqrt(T)
         if (T+DT > next_stop) then
             DT = next_stop - T
             T = next_stop
