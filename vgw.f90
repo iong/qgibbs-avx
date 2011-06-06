@@ -2,7 +2,7 @@ module vgw
     use utils
     implicit none
     private
-    public :: vgwinit, vgw0, get_fx
+    public :: vgwinit, vgw0v, get_fx
     
     integer :: Natom, Nmax, maxthreads
     real*8 :: BL
@@ -67,6 +67,12 @@ subroutine vgwinit(Nmax_, species, M, rcutoff)
     mass = mass*0.020614788876D0
     invmass = 1.0/mass
 end subroutine
+
+
+subroutine vgwfmcleanup()
+    deallocate(NNB, NBIDX, UPV, UPM, TRUXXG, U, Q, G, QP, GP)
+end subroutine
+
 
 subroutine init_gaussians(q0, tau, mm)
     REAL*8, intent(in) :: Q0(:,:), tau
