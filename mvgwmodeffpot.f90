@@ -40,8 +40,8 @@ contains
     SUBROUTINE INITIALIZE_VGWM(N,TI,AT,BLX,RCT, vgwdata)
         IMPLICIT NONE
         character(*), optional, intent(in) :: vgwdata
-        INTEGER :: I,J,K,N,NSETS,ITYPE,MSIZE1,MSIZE2,NG,CP,CNT,ACNT,NAM,IND,NM,LSZE,GSIZE,PCNT,NODE,EG
-        DOUBLE PRECISION :: TMAX,TMIN,BLX,COE,AT,ALPHA,TI,PMAX,RCT
+        INTEGER :: I,J,K,N,NSETS,ITYPE,MSIZE1,MSIZE2,NG,CP,CNT,ACNT,NAM,IND,LSZE,PCNT
+        DOUBLE PRECISION :: BLX,COE,AT,ALPHA,TI,RCT
         CHARACTER*100 :: DUMMY
 
         N_ATOM=N
@@ -173,7 +173,6 @@ contains
             ENDDO
         ENDDO
 
-        NM=N_MOL                           ! Return number of molecules
         LSZE=LRGMSZE                       ! Return largest molecule size
 
     END SUBROUTINE INITIALIZE_VGWM
@@ -183,7 +182,7 @@ contains
         DOUBLE PRECISION, intent(in) :: Q(3,N_atom), BETAMAX
         DOUBLE PRECISION, intent(out) :: EFFPOT
         DOUBLE PRECISION :: QT(N3ATOM),UGAUSS
-        INTEGER :: N_STEP,I,J,K,CNT
+        INTEGER :: I
 
         Y=0.0D0
 
@@ -217,7 +216,7 @@ contains
         CALL LNPS(EFFPOT)
 
         EFFPOT=-EFFPOT/BETAMAX
-        !write (*,*) Y(1)
+        write (*,*) Y(1)
     END SUBROUTINE VGWMQUENCH
 
     SUBROUTINE PAIRS(Q)
@@ -282,9 +281,9 @@ contains
     SUBROUTINE LNPS(LOGZ)
 
         IMPLICIT NONE
-        INTEGER :: I,J,K,CNT,DIM,INFO,JPVT((3*MSIZE)**2),IND
+        INTEGER :: I,J,K,CNT,DIM,INFO,IND
         DOUBLE PRECISION :: C(3*LRGMSZE,3*LRGMSZE),LOGZ,GAMMA,DET
-        DOUBLE PRECISION :: DETL,WORK((3*LRGMSZE)**2)
+        DOUBLE PRECISION :: DETL
         CHARACTER*1 :: UPLO="U"
 
         GAMMA=Y(1)
@@ -343,7 +342,7 @@ contains
         IMPLICIT NONE
         INTEGER :: I,J,K,PCNT,L,NEQM,CNT,NDIM,NAM,IND,MASSCNT
         DOUBLE PRECISION :: QIJ(3),U,TRUXX,GUX,GUG,GU(3*LRGMSZE,3*LRGMSZE),TT 
-        DOUBLE PRECISION :: UPV(N3ATOM),UPM(3*LRGMSZE,3*LRGMSZE,N_MOL),DIM
+        DOUBLE PRECISION :: UPV(N3ATOM),UPM(3*LRGMSZE,3*LRGMSZE,N_MOL)
         DOUBLE PRECISION :: YM(NEQM),YPRIME(NEQM),G(3*LRGMSZE,3*LRGMSZE,N_MOL)
 
         CNT=2+N3ATOM
