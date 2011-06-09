@@ -63,38 +63,43 @@ subroutine vgwfmcleanup()
     deallocate(Q, G, QP, GP, GU, UX, UXY)
 end subroutine
 
-subroutine Upot_tau0(Q)
-    IMPLICIT NONE
-    REAL*8, intent(in) :: Q(:,:)
-    INTEGER  I,J,N
-    real*8 :: rsq,QIJ(3)
+subroutine unpack_y(y, Q, G, gama)
+    implicit none
+    double precision, intent(out) :: Q(:), G(:,:), gama
+    double precision, intent(in) :: y(:)
 
-    N = size(Q, 2)
+    integer :: ypos, i
 
-    U=0d0
-    DO I=1,N-1
-        DO J=I+1,N
-                qij = Q(:,I) - Q(:,J)
-                rsq = sum(min_image(qij, BL)**2)
-                U = U + sum(LJC(1:NGAUSS)*EXP(-LJA(1:NGAUSS)*rsq))
-        ENDDO
-    ENDDO
-end subroutine Upot_tau0
-
-subroutine init_gaussians(q0, tau)
-    REAL*8, intent(in) :: Q0(:,:), tau
-    integer :: i
+    Q = y(1:3*Natom)
     
-    call Upot_tau0(Q0)
-
-    gama = -tau*U
-    Q = reshape(Q0, (/ 3*Natom /) )
-
-    G = 0
-    do i=1,3*Natom
-        G(i,i) = tau*invmass
+    ypos = 3*Natom+1
+    do i = 1,3*Natom
+    	G(i:3*Natom, i) = y(ypos : ypos + 3*Natom - i)
+    	G(i, i:3*Natom) = y(ypos : ypos + 3*Natom - i)
+    	ypos = ypos + 3*Natom - i + 1
     end do
+    
+    gama = y(ypos)
 end subroutine
+
+subroutine pack_y(Q, G, gama, y)
+    implicit none
+    double precision, intent(in) :: Q(:), G(:,:), gama
+    double precision, intent(out) :: y(:)
+    
+    integer :: ypos, i
+
+    y(1:3*Natom) = Q
+    
+    ypos = 3*Natom+1
+    do i = 1,3*Natom
+    	y(ypos : ypos + 3*Natom - i) = G(i:3*Natom, i)
+    	ypos = ypos + 3*Natom - i + 1
+    end do
+    
+    y(ypos) = gama
+end subroutine
+
 
 subroutine get_gaussian(Qtau, Gtau, gamatau)
     double precision, intent(out), optional :: Qtau(:,:), Gtau(:,:), gamatau
