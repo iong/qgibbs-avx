@@ -1,0 +1,12 @@
+#Tue Jun 07 17:40:41 PDT 2011
+eclipse.preferences.version=1
+environment/project/photran.managedbuild.config.intel.fortran.exe.x86_64.debug.530768888/append=true
+environment/project/photran.managedbuild.config.intel.fortran.exe.x86_64.debug.530768888/appendContributed=true
+environment/project/photran.managedbuild.config.intel.fortran.exe.x86_64.release.876228537/LD_LIBRARY_PATH/delimiter=\:
+environment/project/photran.managedbuild.config.intel.fortran.exe.x86_64.release.876228537/LD_LIBRARY_PATH/operation=append
+environment/project/photran.managedbuild.config.intel.fortran.exe.x86_64.release.876228537/LD_LIBRARY_PATH/value=/opt/intel/composerxe-2011/mkl/lib/intel64
+environment/project/photran.managedbuild.config.intel.fortran.exe.x86_64.release.876228537/PATH/delimiter=\:
+environment/project/photran.managedbuild.config.intel.fortran.exe.x86_64.release.876228537/PATH/operation=append
+environment/project/photran.managedbuild.config.intel.fortran.exe.x86_64.release.876228537/PATH/value=/usr/local/gcc-4.6/bin/
+environment/project/photran.managedbuild.config.intel.fortran.exe.x86_64.release.876228537/append=true
+environment/project/photran.managedbuild.config.intel.fortran.exe.x86_64.release.876228537/appendContributed=true
