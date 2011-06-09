@@ -4,15 +4,15 @@ SUBROUTINE RHSSspFM(NEQ, T, Y, YP)!, RPAR, IPAR)
     integer, intent(in) :: NEQ!, IPAR(:)
     double precision, intent(in) :: T, Y(NEQ)!, RPAR(:)
     double precision, intent(out) :: YP(NEQ)
-    INTEGER :: J,I1,I2,IG, J2, Gb_ptr, info, nGbcols, ptrb(2), ptre(2), k
+    INTEGER :: J,I1,I2,IG, J2, Gb_ptr, info, nGbcols, ptrb(2), ptre(2), k, I2_3
     double precision :: AG(3,3), DETA,DETAG,QZQ,U12, G12(3,3),A(3,3), &
             Zq(3), Z(3,3),Q12(3), UXY0(3,3), UX0(3)
+    double precision, pointer :: GUT_slab(:,:)
 
     integer :: job(6) = (/ 1, 1, 1, 0, 0, 1 /)
     character(6) :: matdescra='GxxFxx'
 
-    write (*,*) T
-
+    ! first call, G=0
     if (y(3*Natom+1)==0d0) then
         call rhss_zero_time(y, yp)
         return
@@ -107,10 +107,11 @@ SUBROUTINE RHSSspFM(NEQ, T, Y, YP)!, RPAR, IPAR)
         ptrb(1) = 1
         ptre(1) = Gbia(I1+1) - Gbia(I1) + 1
         do J2=fmdiag(I1),Gbia(I1+1)-1
-            I2=Gbja(J2)
+            I2_3=3*Gbja(J2) - 2
+            GUT_slab => GUT(:, I2_3 : I2_3 + 2)
             call mkl_dbsrmm('N', 1, 3, Natom, 3, -1d0, matdescra, &
                 Gb(:,:,Gbia(I1):Gbia(I1+1)-1), Gbja(Gbia(I1):Gbia(I1+1)-1), &
-                ptrb, ptre, GUT(:,3*(I2-1)+1:3*I2), 3*Natom, 0d0, &
+                ptrb, ptre, GUT_slab, 3*Natom, 0d0, &
                 GPb(:,:,J2), 3)
         end do
         

@@ -6,7 +6,7 @@ module vgwspfm
     public :: vgwspfminit, vgw0spfm,vgwspfmcleanup
     
     integer :: Natom, Nmax, nnzbmax, nnzb
-    real*8 :: BL, rfullmatsq = 25d0
+    real*8 :: BL, rfullmatsq = 5.5d0**2
     real*8, dimension(10) :: LJA, LJC
     integer :: NGAUSS
     integer, allocatable :: NBIDX(:,:), NNB(:),  &
@@ -18,7 +18,9 @@ module vgwspfm
     real*8 :: T, gama, gamap, U
     real*8, allocatable :: Q(:,:), Gcsr(:), Gbdiag(:,:,:), &
             UXY(:,:,:), UXYdiag(:,:,:), UXYr(:), &
-            UX(:,:), GPb(:,:,:),  QP(:,:), GUT(:,:)
+            UX(:,:), GPb(:,:,:),  QP(:,:)
+
+    real*8, allocatable, target :: GUT(:,:)
 
     real*8 :: invmass, RC, TAUMIN, mass
     logical :: finished
