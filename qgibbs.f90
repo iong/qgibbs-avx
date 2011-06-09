@@ -1,5 +1,4 @@
 program qgibbs
-    use vgw
     use utils, only: min_image, replace_char
     implicit none
     real*8, parameter :: M_PI = 3.141592653d0
@@ -82,7 +81,6 @@ program qgibbs
 
     rhcore = 2.85
 
-    call vgwinit(Ntot, 'pH2-4g')
     U0 = total_energy(bl)
 
     do imc=1,Nequil
@@ -316,6 +314,7 @@ subroutine mc_vol()
 end subroutine
 
 function total_energy(bln, ibox) result(utot)
+    use vgwspfm
     implicit none
     real*8, intent(in) :: bln(2)
     integer, intent(in), optional :: ibox
@@ -324,21 +323,38 @@ function total_energy(bln, ibox) result(utot)
     if (present(ibox)) then
         Utot = U0
         
-        call vgw0v(rs(:,1:N(ibox),ibox)*bln(ibox), bln(ibox), (/ beta /), &
-            0d0, Utot(ibox:ibox), fx(:,1:N(ibox)) )
+        call vgwspfminit(N(ibox), 'pH2-4g')
+
+        call vgw0spfm(rs(:,1:N(ibox),ibox)*bln(ibox), bln(ibox), beta, &
+            Utot(ibox))
+        
+        call vgwspfmcleanup()
+        
+        Utot(ibox + 2) = 0d0
+        !call vgw0v(rs(:,1:N(ibox),ibox)*bln(ibox), bln(ibox), (/ beta /), &
+        !    0d0, Utot(ibox:ibox), fx(:,1:N(ibox)) )
             
-        Utot(ibox + 2) = sum(fx(:,1:N(ibox)) * rs(:,1:N(ibox),ibox)) * bln(ibox)
+        !Utot(ibox + 2) = sum(fx(:,1:N(ibox)) * rs(:,1:N(ibox),ibox)) * bln(ibox)
     else
+        call vgwspfminit(N(1), 'pH2-4g')
+
+        call vgw0spfm(rs(:,1:N(1),1)*bln(1), bln(1), beta, Utot(1))
+        Utot(3) = 0d0
         
-        call vgw0v(rs(:,1:N(1),1)*bln(1), bln(1), (/ beta /), 0d0, Utot(1:1), &
-            fx(:,1:N(1)) )
+        call vgwspfmcleanup()
+
+        !call vgw0v(rs(:,1:N(1),1)*bln(1), bln(1), (/ beta /), 0d0, & 
+        !    Utot(1:1), fx(:,1:N(1)) )
             
-        Utot(3) = sum(fx(:,1:N(1)) * rs(:,1:N(1),1)) * bln(1)
+        !Utot(3) = sum(fx(:,1:N(1)) * rs(:,1:N(1),1)) * bln(1)
         
-        call vgw0v(rs(:,1:N(2),2)*bln(2), bln(2), (/ beta /), 0d0, Utot(2:2), &
-            fx(:,1:N(2)) )
+        call vgwspfminit(N(2), 'pH2-4g')
             
-        Utot(4) = sum(fx(:,1:N(2)) * rs(:,1:N(2),2)) * bln(2)
+        call vgw0spfm(rs(:,1:N(2),2)*bln(2), bln(2), beta, Utot(2))
+        Utot(4) = 0d0
+        
+        call vgwspfmcleanup()
+        !Utot(4) = sum(fx(:,1:N(2)) * rs(:,1:N(2),2)) * bln(2)
     end if
 end function
 
