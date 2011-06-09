@@ -16,80 +16,55 @@ SUBROUTINE vgw0spfm(Q0, BL_, TAUMAX, W)
     BL = BL_
 
     call interaction_lists(Q0)
-    call hessian(Q0)
 
     nnzbmax = 2*sum(nnb) + Natom
 
     if (size(Gb, 3) < nnzbmax) then
+
         deallocate(Gb, Gcsr, UXY, UXYr, Gbja, Grja, GPb)
+
         allocate(Gb(3,3,nnzbmax), Gcsr(9*nnzbmax), UXY(3,3,nnzbmax), &
             UXYr(9*nnzbmax), Gbja(nnzbmax), Grja(9*nnzbmax), &
             GPb(3,3,nnzbmax))
+
     end if
 
     call init_sparse_pattern(Q0)
 
-
     NEQ = 3*Natom + 9*nnzb + 1
 
-    !TAUMIN=5d-4
-
-    !T=TAUMIN
-    !call init_gaussians(Q0, T)
-
-    !next_stop = 0.5d0*TAUMAX
-    !do
-    !    DT = 1d-2*sqrt(T)
-    !    if (T+DT > next_stop) then
-    !        DT = next_stop - T
-    !        T = next_stop
-    !    else
-    !        T = T + DT
-    !    end if
-    !    call RHSSspfm(DT, mm)
-    !    if (T == next_stop) exit
-    !end do
 
     LRW = 20 + 16*NEQ
     LIW = 30
     allocate(Y(NEQ), YP(NEQ), ATOL(NEQ), RWORK(LRW), IWORK(LIW))
 
-    T=0
-    y=0d0
-    y(1:3*Natom) = reshape(Q0, (/ 3*Natom /) )
-
-    !call pack_y(Q, Gb(:,:,1:nnzb), gama, y)
-    !call RHSSspFM(NEQ, 0d0, Y, YP)
-
-
     ITOL=2
     RTOL=0
-    ATOL(1:3*Natom) = 1d-2
+    ATOL(1:3*Natom) = 1d-3
     ATOL(3*Natom+1:3*Natom+9*nnzb)=1d-4
-    ATOL(3*Natom+9*nnzb+1) = 1000
+    ATOL(3*Natom+9*nnzb+1) = 1
     ITASK=1
     ISTATE=1
     IOPT = 1
     MF=10
+    IWORK=0
 
     RWORK(5)=5d-4
     RWORK(6)=2d-3
     RWORK(7)=1d-5
+
+    T=0
+    y=0d0
+    y(1:3*Natom) = reshape(Q0, (/ 3*Natom /) )
 
     !CALL DVODE(RHSSspFM,NEQ,Y,T,0.5*TAUMAX,ITOL,RTOL,ATOL,ITASK,ISTATE,IOPT,&
     !    RWORK,LRW,IWORK,LIW,JAC,MF,RPAR,IPAR)
     CALL DLSODE(RHSSspFM,NEQ,Y,T,0.5*TAUMAX,ITOL,RTOL,ATOL(1),ITASK,ISTATE,IOPT,&
         RWORK,LRW,IWORK,LIW,JAC,MF)
 
-    write (*,*) IWORK(11), 'steps,', IWORK(12), ' RHSS calls', 'last_dt =', RWORK(12)
+    write (*,*) IWORK(11), 'steps,', IWORK(12), ' RHSS calls, last_dt =', RWORK(12)
 
     call unpack_y(y, Q, Gb(:,:,1:nnzb), gama)
-
-    !rewind(50)
-    !write (50, '(F16.8)') YP
-    !rewind(51)
-    !call RHSSspFM(NEQ, 0d0, Y, YP)
-    !write (51, '(F16.8)') YP
 
     deallocate(y, yp, RWORK, IWORK, ATOL)
 
@@ -101,43 +76,6 @@ SUBROUTINE vgw0spfm(Q0, BL_, TAUMAX, W)
     !write (*,*) gama
 END SUBROUTINE
 
-
-subroutine init_gaussians(q0, tau)
-    REAL*8, intent(in) :: Q0(:,:), tau
-    integer :: i, k
-    
-    call Upot_tau0(Q0)
-
-    gama = -tau*U/real(Natom)
-    Q = Q0
-
-    Gb = 0
-    do i=1,Natom
-        do k=1,3
-            Gb(k,k,fmdiag(i)) = tau*invmass
-        end do
-    end do
-end subroutine
-
-subroutine Upot_tau0(Q)
-    IMPLICIT NONE
-    REAL*8, intent(in) :: Q(:,:)
-    INTEGER  I,J,N
-    real*8 :: rsq,BL2,QIJ(3)
-
-    N = size(Q, 2)
-    BL2=BL/2.0
-
-    U=0d0
-
-    DO I=1,N-1
-        DO J=1,NNB(I)
-                qij = Q(:,I) - Q(:,NBIDX(J, I))
-                rsq = sum(min_image(qij, BL)**2)
-                U = U + sum(LJC(1:NGAUSS)*EXP(-LJA(1:NGAUSS)*rsq))
-        ENDDO
-    ENDDO
-end subroutine Upot_tau0
 
 subroutine interaction_lists(Q)
     implicit none
@@ -224,8 +162,6 @@ subroutine hessian(Q)
         qZq, Q12(3)
     integer :: I1, I2, J2, IG, J
 
-    integer, save :: kkk=0
-
     U = 0; UX = 0; UXYf = 0
     do I1=1,Natom-1
 
@@ -259,7 +195,4 @@ subroutine hessian(Q)
             UXYf(3*I2-2 : 3*I2, 3*I1-2 : 3*I1) = -UXY0
         end do ! I2
     end do ! I1
-
-    write(39+kkk, '(F16.8)') UXYf
-    kkk=kkk+1
 end subroutine
