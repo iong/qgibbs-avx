@@ -1,16 +1,24 @@
-SUBROUTINE RHSSspFM(DT, mm)
+SUBROUTINE RHSSspFM(NEQ, T, Y, YP)!, RPAR, IPAR)
 !    use omp_lib
     IMPLICIT NONE
-    double precision, intent(in) :: DT
-    logical, intent(in) :: mm
-    INTEGER :: J,I1,I2,IG, J2, Gb_ptr, info, nGbcols, ptrb(nnbmax), ptre(nnbmax), k
+    integer, intent(in) :: NEQ!, IPAR(:)
+    double precision, intent(in) :: T, Y(NEQ)!, RPAR(:)
+    double precision, intent(out) :: YP(NEQ)
+    INTEGER :: J,I1,I2,IG, J2, Gb_ptr, info, nGbcols, ptrb(2), ptre(2), k
     double precision :: AG(3,3), DETA,DETAG,QZQ,U12, G12(3,3),A(3,3), &
-            Zq(3), Z(3,3),Q12(3), UXY0(3,3), UX0(3), GbGUT(3*nnbmax, 3), &
-            UXYf(3*Natom,3*Natom), Gf(3*Natom,3*Natom), GUf(3*Natom,3*Natom), &
-            GPf(3*Natom,3*Natom)
+            Zq(3), Z(3,3),Q12(3), UXY0(3,3), UX0(3)
 
     integer :: job(6) = (/ 1, 1, 1, 0, 0, 1 /)
     character(6) :: matdescra='GxxFxx'
+
+    write (*,*) T
+
+    if (y(3*Natom+1)==0d0) then
+        call rhss_zero_time(y, yp)
+        return
+    end if
+
+    call unpack_y(y, Q, Gb(:,:,1:nnzb), gama)
  
 
     U = 0; UX = 0; UXY = 0;  UXYdiag=0
@@ -56,6 +64,7 @@ SUBROUTINE RHSSspFM(DT, mm)
                 qZq = dot_product(Q12, Zq) 
 
                 if (DETA*DETAG <= 0.0d0 ) then
+                    write (69, '(F16.8)'), Y
                     write (*,*) DETA, DETAG
                     stop
                 end if
@@ -81,10 +90,6 @@ SUBROUTINE RHSSspFM(DT, mm)
                 Gb_ptr = Gb_ptr + 1
             end if
             
-            UXYf(3*(I1-1) + 1 : 3*I1, 3*(I1-1) + 1 : 3*I1) = UXYf(3*(I1-1) + 1 : 3*I1, 3*(I1-1) + 1 : 3*I1) + UXY0
-            UXYf(3*(I2-1) + 1 : 3*I2, 3*(I2-1) + 1 : 3*I2) = UXYf(3*(I2-1) + 1 : 3*I2, 3*(I2-1) + 1 : 3*I2) + UXY0
-            UXYf(3*(I1-1) + 1 : 3*I1, 3*(I2-1)+1 : 3*I2) = -UXY0
-            UXYf(3*(I2-1)+1 : 3*I2, 3*(I1-1) + 1 : 3*I1) = -UXY0
         end do ! I2
     end do ! I1
 
@@ -99,27 +104,9 @@ SUBROUTINE RHSSspFM(DT, mm)
         Grja, Gria, GUT, 3*Natom)
 
     do I1=1,Natom
-
-        ! Here we would select the relevant columns of G to compute GU * G
-        ! However, the SpBLAS API forces us to use (G^T * (GU)^T)^T, meaning
-        ! we operate on the rows of G instead of its columns. It is the same
-        ! though, since G is symmetric.
-        !call bsr_chop(Gbia, Gbja(Gbia(I1) : FMDIAG(I1)), ptrb, ptre)
-
-        !nGbcols = fmdiag(I1) - Gbia(I1) + 1
-        !call mkl_dbsrmm('N', nGbcols, 3, Natom, 3, -1d0, matdescra, Gb, Gbja, &
-        !    ptrb, ptre, GUT(:,3*(I1-1)+1:3*I1), 3*Natom, 0d0, GbGUT, 3*nnbmax)
-
-        !GPb(:,:, Gbia(I1) : FMDIAG(I1)) = reshape( &
-        !    transpose(GbGUT(1:3*nGbcols,:)), (/3,3,nGbcols/) )
-
-        !rewind(52)
-        !write(52,'(F12.6)') GbGUT(1:3*nGbcols,:)!GPb(:,:, Gbia(I1): FMDIAG(I1))
-        !write (*,*) 3, 3, FMDIAG(I1) - Gbia(I1) + 1
-        
         ptrb(1) = 1
         ptre(1) = Gbia(I1+1) - Gbia(I1) + 1
-        do J2=Gbia(I1),Gbia(I1+1)-1
+        do J2=fmdiag(I1),Gbia(I1+1)-1
             I2=Gbja(J2)
             call mkl_dbsrmm('N', 1, 3, Natom, 3, -1d0, matdescra, &
                 Gb(:,:,Gbia(I1):Gbia(I1+1)-1), Gbja(Gbia(I1):Gbia(I1+1)-1), &
@@ -132,40 +119,54 @@ SUBROUTINE RHSSspFM(DT, mm)
         end do
         
     end do
-    !call bsr_copy_up_lo(Gbia, Gbja, GPb)
+    call bsr_copy_up_lo(Gbia, Gbja, GPb)
 
     call mkl_dbsrgemv('N', Natom, 3, Gb, Gbia, Gbja, UX, QP)
     QP = -1d0*QP
 
-    !call bsrdense(UXY, GBia, Gbja, UXYf)
-    !call bsrdense(Gb, GBia, Gbja, Gf)
-    !GUf = matmul(Gf, UXYf)
-    !GPf = -matmul(GUf, Gf)
-    !do J=1,3*Natom
-    !    GPf(J,J) = GPf(J,J) + invmass
-    !end do
-    !rewind(50)
-    !rewind(51)
-    !write(50,'(F16.6)') GPf
-    !call bsrdense(GPb, GBia, Gbja, GPf)
-    !write(51,'(F16.6)') GPf
-    !stop
-    !GPf=0d0
-    !call bsr_chop(Gbia, (/ (i1,i1=1,Natom) /), ptrb, ptre)
-    !call mkl_dbsrmm('N', Natom, 3*Natom, Natom, 3, -1d0, matdescra, Gb, Gbja, &
-    !    ptrb, ptre, GUT, 3*Natom, 0d0, GPf, 3*Natom)
-    !    do J=1,3*Natom
-    !        GPf(J,J) = GPf(J,J) + invmass
-    !    end do
 
+    gamap = -(0.25d0 * sum(UXY(:,:,1:nnzb) * Gb(:,:,1:nnzb)) + U)/real(Natom)
 
-    gamap = -0.25d0 * sum(UXY * Gb) - U
+    call pack_y(QP, GPb(:,:,1:nnzb), gamap, yp)
 
-    Q = Q + DT * QP
-    Gb = Gb + DT * GPb
-    gama = gama + DT * gamap
+!    Q = Q + DT * QP
+!    Gb(:,:,1:nnzb) = Gb(:,:,1:nnzb) + DT * GPb(:,:,1:nnzb)
+!    gama = gama + DT * gamap
 end subroutine RHSSspFM
 
+
+subroutine rhss_zero_time(y, yp)
+    double precision, intent(in) :: y(:)
+    double precision, intent(out) :: yp(:)
+
+    double precision :: qij(3), rsq
+    integer :: i, j, k
+
+    Q = reshape(y(1:3*Natom), (/ 3, Natom /) )
+
+    QP = 0d0
+
+    GPb = 0
+    do i=1,Natom
+        do k=1,3
+            GPb(k,k,fmdiag(i)) = invmass
+        end do
+    end do
+
+    U=0d0
+
+    DO I=1,Natom-1
+        DO J=1,NNB(I)
+                qij = Q(:,I) - Q(:,NBIDX(J, I))
+                rsq = sum(min_image(qij, BL)**2)
+                U = U + sum(LJC(1:NGAUSS)*EXP(-LJA(1:NGAUSS)*rsq))
+        ENDDO
+    ENDDO
+
+    gamap = -U/real(Natom)
+
+    call pack_y(QP, GPb(:,:,1:nnzb), gamap, yp)
+end subroutine
 
 subroutine bsr_copy_up_lo(p, i, x)
     integer, intent(in) :: p(:), i(:)
@@ -175,6 +176,7 @@ subroutine bsr_copy_up_lo(p, i, x)
 
     nstored = 0
     do j=1,size(p) - 1
+        ! skip the diagonal
         nstored(j) = nstored(j) + 1
 
         do k=p(j)+nstored(j), p(j+1)-1
@@ -234,17 +236,3 @@ subroutine bsrdense(x, ia, ja, A)
         end do
     end do
 end subroutine
-
-!subroutine dump_mtx(x, ia, ja, fname)
-!    double precision, intent(in) :: x(:,:,:)
-!    integer, intent(in) :: ia(:), ja(:)
-!    character(*) :: fname
-!    
-!    N = size(ia) - 1
-!    nnz = ia(N+1) - 1
-!    
-!    open(38,file=trim(fname))
-!    write(38,'I6') N, N, nnz
-!    do i=1,N
-!        do jit=ia(i),ia(i+1)+1
-!            j = ja(jit)
