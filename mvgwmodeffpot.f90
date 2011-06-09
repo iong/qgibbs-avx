@@ -188,11 +188,11 @@ contains
 
         CALL INITDLSODE
 
-        IF(PBC) THEN
-            QT=BL*reshape(Q, (/ N3atom /) )
-        ELSE
+        !IF(PBC) THEN
+        !    QT=BL*reshape(Q, (/ N3atom /) )
+        !ELSE
             QT=reshape(Q, (/ N3atom /) )
-        ENDIF
+        !ENDIF
 
         IF(RCUT.GT.0) CALL PAIRS(QT)
 
