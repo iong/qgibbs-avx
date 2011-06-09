@@ -3,106 +3,14 @@
 <plist version="1.0">
 <dict>
 	<key>currentDocument</key>
-	<string>dimer.f90</string>
+	<string>rhssspfm.f90</string>
 	<key>documents</key>
 	<array>
 		<dict>
 			<key>filename</key>
-			<string>gibbs3.f90</string>
+			<string>Makefile</string>
 			<key>lastUsed</key>
-			<date>2011-05-22T02:27:56Z</date>
-		</dict>
-		<dict>
-			<key>children</key>
-			<array>
-				<dict>
-					<key>filename</key>
-					<string>rhss0.f90</string>
-					<key>lastUsed</key>
-					<date>2011-05-21T21:26:50Z</date>
-				</dict>
-				<dict>
-					<key>filename</key>
-					<string>vgw.f90</string>
-					<key>lastUsed</key>
-					<date>2011-05-24T01:16:20Z</date>
-				</dict>
-				<dict>
-					<key>filename</key>
-					<string>vgw0.f90</string>
-					<key>lastUsed</key>
-					<date>2011-05-24T01:17:19Z</date>
-				</dict>
-				<dict>
-					<key>filename</key>
-					<string>interaction_lists.f90</string>
-					<key>lastUsed</key>
-					<date>2011-05-22T02:41:03Z</date>
-				</dict>
-				<dict>
-					<key>filename</key>
-					<string>potential_energy.f90</string>
-					<key>lastUsed</key>
-					<date>2011-05-24T00:38:57Z</date>
-				</dict>
-				<dict>
-					<key>filename</key>
-					<string>qgibbs.f90</string>
-					<key>lastUsed</key>
-					<date>2011-05-23T17:34:24Z</date>
-				</dict>
-			</array>
-			<key>expanded</key>
-			<true/>
-			<key>name</key>
-			<string>qgibbs</string>
-		</dict>
-		<dict>
-			<key>children</key>
-			<array>
-				<dict>
-					<key>filename</key>
-					<string>rhssfm.f90</string>
-					<key>lastUsed</key>
-					<date>2011-05-24T00:49:44Z</date>
-				</dict>
-				<dict>
-					<key>filename</key>
-					<string>cluster.f90</string>
-					<key>lastUsed</key>
-					<date>2011-05-24T00:38:49Z</date>
-				</dict>
-				<dict>
-					<key>filename</key>
-					<string>dimer.f90</string>
-					<key>lastUsed</key>
-					<date>2011-05-24T01:17:30Z</date>
-					<key>selected</key>
-					<true/>
-				</dict>
-				<dict>
-					<key>filename</key>
-					<string>vgw0fm.f90</string>
-					<key>lastUsed</key>
-					<date>2011-05-24T01:17:30Z</date>
-				</dict>
-				<dict>
-					<key>filename</key>
-					<string>mvgwmodeffpot.f90</string>
-					<key>lastUsed</key>
-					<date>2011-05-24T00:51:01Z</date>
-				</dict>
-				<dict>
-					<key>filename</key>
-					<string>vgwfm.f90</string>
-					<key>lastUsed</key>
-					<date>2011-05-24T01:16:33Z</date>
-				</dict>
-			</array>
-			<key>expanded</key>
-			<true/>
-			<key>name</key>
-			<string>dimer</string>
+			<date>2011-06-06T18:54:49Z</date>
 		</dict>
 		<dict>
 			<key>children</key>
@@ -111,13 +19,13 @@
 					<key>filename</key>
 					<string>config/gcc.mk</string>
 					<key>lastUsed</key>
-					<date>2011-05-12T20:53:44Z</date>
+					<date>2011-05-26T23:25:04Z</date>
 				</dict>
 				<dict>
 					<key>filename</key>
 					<string>config/intel.mk</string>
 					<key>lastUsed</key>
-					<date>2011-05-21T03:55:11Z</date>
+					<date>2011-06-01T17:33:29Z</date>
 				</dict>
 				<dict>
 					<key>filename</key>
@@ -130,22 +38,165 @@
 			<string>config</string>
 		</dict>
 		<dict>
+			<key>children</key>
+			<array>
+				<dict>
+					<key>filename</key>
+					<string>interaction_lists.f90</string>
+					<key>lastUsed</key>
+					<date>2011-05-26T20:45:55Z</date>
+				</dict>
+				<dict>
+					<key>filename</key>
+					<string>potential_energy.f90</string>
+					<key>lastUsed</key>
+					<date>2011-05-26T18:19:10Z</date>
+				</dict>
+				<dict>
+					<key>filename</key>
+					<string>rhss0.f90</string>
+					<key>lastUsed</key>
+					<date>2011-05-26T18:19:12Z</date>
+				</dict>
+				<dict>
+					<key>filename</key>
+					<string>vgw.f90</string>
+					<key>lastUsed</key>
+					<date>2011-05-26T18:19:11Z</date>
+				</dict>
+				<dict>
+					<key>filename</key>
+					<string>vgw0.f90</string>
+					<key>lastUsed</key>
+					<date>2011-05-26T20:45:43Z</date>
+				</dict>
+			</array>
+			<key>expanded</key>
+			<true/>
+			<key>name</key>
+			<string>vgw</string>
+		</dict>
+		<dict>
+			<key>children</key>
+			<array>
+				<dict>
+					<key>filename</key>
+					<string>rhssfm.f90</string>
+					<key>lastUsed</key>
+					<date>2011-06-04T22:19:26Z</date>
+				</dict>
+				<dict>
+					<key>filename</key>
+					<string>vgw0fm.f90</string>
+					<key>lastUsed</key>
+					<date>2011-06-01T15:40:40Z</date>
+				</dict>
+				<dict>
+					<key>filename</key>
+					<string>vgwfm.f90</string>
+					<key>lastUsed</key>
+					<date>2011-06-01T15:40:20Z</date>
+				</dict>
+			</array>
+			<key>expanded</key>
+			<true/>
+			<key>name</key>
+			<string>vgwfm</string>
+		</dict>
+		<dict>
+			<key>children</key>
+			<array>
+				<dict>
+					<key>filename</key>
+					<string>vgw0spfm.f90</string>
+					<key>lastUsed</key>
+					<date>2011-06-06T19:04:51Z</date>
+				</dict>
+				<dict>
+					<key>filename</key>
+					<string>rhssspfm.f90</string>
+					<key>lastUsed</key>
+					<date>2011-06-09T04:04:28Z</date>
+					<key>selected</key>
+					<true/>
+				</dict>
+				<dict>
+					<key>filename</key>
+					<string>vgwspfm.f90</string>
+					<key>lastUsed</key>
+					<date>2011-06-06T19:02:02Z</date>
+				</dict>
+				<dict>
+					<key>filename</key>
+					<string>det_sparse_g.c</string>
+					<key>lastUsed</key>
+					<date>2011-06-06T18:54:42Z</date>
+				</dict>
+				<dict>
+					<key>filename</key>
+					<string>det_sparse_g2.c</string>
+					<key>lastUsed</key>
+					<date>2011-06-07T04:50:09Z</date>
+				</dict>
+			</array>
+			<key>expanded</key>
+			<true/>
+			<key>name</key>
+			<string>vgwspfm</string>
+		</dict>
+		<dict>
 			<key>filename</key>
-			<string>Makefile</string>
+			<string>mccluster.f90</string>
 			<key>lastUsed</key>
-			<date>2011-05-23T22:05:11Z</date>
+			<date>2011-06-04T22:18:34Z</date>
+		</dict>
+		<dict>
+			<key>filename</key>
+			<string>cluster.f90</string>
+			<key>lastUsed</key>
+			<date>2011-06-07T05:20:09Z</date>
+		</dict>
+		<dict>
+			<key>filename</key>
+			<string>dimer.f90</string>
+			<key>lastUsed</key>
+			<date>2011-06-07T05:06:05Z</date>
+		</dict>
+		<dict>
+			<key>filename</key>
+			<string>gibbs3.f90</string>
+			<key>lastUsed</key>
+			<date>2011-05-27T17:35:47Z</date>
+		</dict>
+		<dict>
+			<key>filename</key>
+			<string>mvgwmodeffpot.f90</string>
+			<key>lastUsed</key>
+			<date>2011-06-07T05:12:31Z</date>
 		</dict>
 		<dict>
 			<key>filename</key>
 			<string>pairint.f90</string>
 			<key>lastUsed</key>
-			<date>2011-05-21T03:59:56Z</date>
+			<date>2011-05-26T23:01:19Z</date>
 		</dict>
 		<dict>
 			<key>filename</key>
 			<string>pimc.f90</string>
 			<key>lastUsed</key>
-			<date>2011-05-21T00:29:49Z</date>
+			<date>2011-05-24T18:12:59Z</date>
+		</dict>
+		<dict>
+			<key>filename</key>
+			<string>qgibbs.f90</string>
+			<key>lastUsed</key>
+			<date>2011-05-26T20:46:33Z</date>
+		</dict>
+		<dict>
+			<key>filename</key>
+			<string>spmat.f90</string>
+			<key>lastUsed</key>
+			<date>2011-05-26T20:46:55Z</date>
 		</dict>
 		<dict>
 			<key>filename</key>
@@ -163,9 +214,9 @@
 			<key>caret</key>
 			<dict>
 				<key>column</key>
-				<integer>26</integer>
+				<integer>1</integer>
 				<key>line</key>
-				<integer>82</integer>
+				<integer>7</integer>
 			</dict>
 			<key>firstVisibleColumn</key>
 			<integer>0</integer>
@@ -177,9 +228,9 @@
 			<key>caret</key>
 			<dict>
 				<key>column</key>
-				<integer>40</integer>
+				<integer>16</integer>
 				<key>line</key>
-				<integer>30</integer>
+				<integer>29</integer>
 			</dict>
 			<key>firstVisibleColumn</key>
 			<integer>0</integer>
@@ -205,9 +256,23 @@
 			<key>caret</key>
 			<dict>
 				<key>column</key>
-				<integer>25</integer>
+				<integer>14</integer>
 				<key>line</key>
-				<integer>17</integer>
+				<integer>18</integer>
+			</dict>
+			<key>firstVisibleColumn</key>
+			<integer>0</integer>
+			<key>firstVisibleLine</key>
+			<integer>0</integer>
+		</dict>
+		<key>det_sparse_g2.c</key>
+		<dict>
+			<key>caret</key>
+			<dict>
+				<key>column</key>
+				<integer>0</integer>
+				<key>line</key>
+				<integer>9</integer>
 			</dict>
 			<key>firstVisibleColumn</key>
 			<integer>0</integer>
@@ -219,28 +284,28 @@
 			<key>caret</key>
 			<dict>
 				<key>column</key>
-				<integer>4</integer>
+				<integer>23</integer>
 				<key>line</key>
-				<integer>43</integer>
+				<integer>41</integer>
 			</dict>
 			<key>firstVisibleColumn</key>
 			<integer>0</integer>
 			<key>firstVisibleLine</key>
-			<integer>13</integer>
+			<integer>12</integer>
 		</dict>
 		<key>gibbs3.f90</key>
 		<dict>
 			<key>caret</key>
 			<dict>
 				<key>column</key>
-				<integer>25</integer>
+				<integer>0</integer>
 				<key>line</key>
-				<integer>29</integer>
+				<integer>136</integer>
 			</dict>
 			<key>firstVisibleColumn</key>
 			<integer>0</integer>
 			<key>firstVisibleLine</key>
-			<integer>68</integer>
+			<integer>109</integer>
 		</dict>
 		<key>interaction_lists.f90</key>
 		<dict>
@@ -249,7 +314,7 @@
 				<key>column</key>
 				<integer>0</integer>
 				<key>line</key>
-				<integer>24</integer>
+				<integer>0</integer>
 			</dict>
 			<key>firstVisibleColumn</key>
 			<integer>0</integer>
@@ -263,193 +328,156 @@
 				<key>column</key>
 				<integer>9</integer>
 				<key>line</key>
-				<integer>218</integer>
+				<integer>194</integer>
 			</dict>
 			<key>firstVisibleColumn</key>
 			<integer>0</integer>
 			<key>firstVisibleLine</key>
 			<integer>169</integer>
 		</dict>
-		<key>pairint.f90</key>
-		<dict>
-			<key>caret</key>
-			<dict>
-				<key>column</key>
-				<integer>11</integer>
-				<key>line</key>
-				<integer>119</integer>
-			</dict>
-			<key>firstVisibleColumn</key>
-			<integer>0</integer>
-			<key>firstVisibleLine</key>
-			<integer>63</integer>
-		</dict>
-		<key>pimc.f90</key>
-		<dict>
-			<key>caret</key>
-			<dict>
-				<key>column</key>
-				<integer>14</integer>
-				<key>line</key>
-				<integer>127</integer>
-			</dict>
-			<key>firstVisibleColumn</key>
-			<integer>0</integer>
-			<key>firstVisibleLine</key>
-			<integer>83</integer>
-		</dict>
-		<key>potential_energy.f90</key>
-		<dict>
-			<key>caret</key>
-			<dict>
-				<key>column</key>
-				<integer>23</integer>
-				<key>line</key>
-				<integer>19</integer>
-			</dict>
-			<key>firstVisibleColumn</key>
-			<integer>0</integer>
-			<key>firstVisibleLine</key>
-			<integer>0</integer>
-		</dict>
 		<key>qgibbs.f90</key>
-		<dict>
-			<key>caret</key>
-			<dict>
-				<key>column</key>
-				<integer>10</integer>
-				<key>line</key>
-				<integer>346</integer>
-			</dict>
-			<key>firstVisibleColumn</key>
-			<integer>0</integer>
-			<key>firstVisibleLine</key>
-			<integer>304</integer>
-		</dict>
-		<key>rhss0.f90</key>
-		<dict>
-			<key>caret</key>
-			<dict>
-				<key>column</key>
-				<integer>52</integer>
-				<key>line</key>
-				<integer>109</integer>
-			</dict>
-			<key>columnSelection</key>
-			<false/>
-			<key>firstVisibleColumn</key>
-			<integer>0</integer>
-			<key>firstVisibleLine</key>
-			<integer>59</integer>
-			<key>selectFrom</key>
-			<dict>
-				<key>column</key>
-				<integer>60</integer>
-				<key>line</key>
-				<integer>109</integer>
-			</dict>
-			<key>selectTo</key>
-			<dict>
-				<key>column</key>
-				<integer>52</integer>
-				<key>line</key>
-				<integer>109</integer>
-			</dict>
-		</dict>
-		<key>rhssfm.f90</key>
 		<dict>
 			<key>caret</key>
 			<dict>
 				<key>column</key>
 				<integer>0</integer>
 				<key>line</key>
-				<integer>37</integer>
+				<integer>0</integer>
 			</dict>
 			<key>firstVisibleColumn</key>
 			<integer>0</integer>
 			<key>firstVisibleLine</key>
-			<integer>25</integer>
+			<integer>0</integer>
 		</dict>
-		<key>vgw.f90</key>
+		<key>rhssspfm.f90</key>
 		<dict>
 			<key>caret</key>
 			<dict>
 				<key>column</key>
-				<integer>18</integer>
+				<integer>1</integer>
 				<key>line</key>
-				<integer>89</integer>
+				<integer>14</integer>
 			</dict>
 			<key>firstVisibleColumn</key>
 			<integer>0</integer>
 			<key>firstVisibleLine</key>
+			<integer>79</integer>
+		</dict>
+		<key>spmat.f90</key>
+		<dict>
+			<key>caret</key>
+			<dict>
+				<key>column</key>
+				<integer>24</integer>
+				<key>line</key>
+				<integer>26</integer>
+			</dict>
+			<key>firstVisibleColumn</key>
 			<integer>0</integer>
+			<key>firstVisibleLine</key>
+			<integer>4</integer>
 		</dict>
 		<key>vgw0.f90</key>
 		<dict>
 			<key>caret</key>
 			<dict>
 				<key>column</key>
-				<integer>0</integer>
+				<integer>4</integer>
 				<key>line</key>
-				<integer>74</integer>
+				<integer>35</integer>
 			</dict>
 			<key>firstVisibleColumn</key>
 			<integer>0</integer>
 			<key>firstVisibleLine</key>
-			<integer>33</integer>
+			<integer>8</integer>
 		</dict>
 		<key>vgw0fm.f90</key>
 		<dict>
 			<key>caret</key>
 			<dict>
 				<key>column</key>
-				<integer>10</integer>
+				<integer>4</integer>
 				<key>line</key>
-				<integer>22</integer>
+				<integer>36</integer>
+			</dict>
+			<key>columnSelection</key>
+			<false/>
+			<key>firstVisibleColumn</key>
+			<integer>0</integer>
+			<key>firstVisibleLine</key>
+			<integer>4</integer>
+			<key>selectFrom</key>
+			<dict>
+				<key>column</key>
+				<integer>18</integer>
+				<key>line</key>
+				<integer>42</integer>
+			</dict>
+			<key>selectTo</key>
+			<dict>
+				<key>column</key>
+				<integer>4</integer>
+				<key>line</key>
+				<integer>36</integer>
+			</dict>
+		</dict>
+		<key>vgw0spfm.f90</key>
+		<dict>
+			<key>caret</key>
+			<dict>
+				<key>column</key>
+				<integer>84</integer>
+				<key>line</key>
+				<integer>74</integer>
 			</dict>
 			<key>firstVisibleColumn</key>
 			<integer>0</integer>
 			<key>firstVisibleLine</key>
-			<integer>0</integer>
+			<integer>50</integer>
 		</dict>
 		<key>vgwfm.f90</key>
 		<dict>
 			<key>caret</key>
 			<dict>
 				<key>column</key>
-				<integer>44</integer>
+				<integer>15</integer>
 				<key>line</key>
-				<integer>4</integer>
+				<integer>12</integer>
 			</dict>
 			<key>firstVisibleColumn</key>
 			<integer>0</integer>
 			<key>firstVisibleLine</key>
-			<integer>41</integer>
+			<integer>26</integer>
+		</dict>
+		<key>vgwspfm.f90</key>
+		<dict>
+			<key>caret</key>
+			<dict>
+				<key>column</key>
+				<integer>0</integer>
+				<key>line</key>
+				<integer>82</integer>
+			</dict>
+			<key>firstVisibleColumn</key>
+			<integer>0</integer>
+			<key>firstVisibleLine</key>
+			<integer>45</integer>
 		</dict>
 	</dict>
 	<key>openDocuments</key>
 	<array>
-		<string>vgw0.f90</string>
-		<string>vgw.f90</string>
-		<string>interaction_lists.f90</string>
-		<string>qgibbs.f90</string>
-		<string>rhss0.f90</string>
-		<string>potential_energy.f90</string>
-		<string>pimc.f90</string>
-		<string>vgwfm.f90</string>
-		<string>rhssfm.f90</string>
+		<string>vgwspfm.f90</string>
 		<string>mvgwmodeffpot.f90</string>
-		<string>pairint.f90</string>
-		<string>dimer.f90</string>
 		<string>cluster.f90</string>
-		<string>vgw0fm.f90</string>
-		<string>gibbs3.f90</string>
+		<string>dimer.f90</string>
+		<string>rhssspfm.f90</string>
+		<string>vgw0spfm.f90</string>
 		<string>Makefile</string>
-		<string>config/intel.mk</string>
+		<string>vgw0fm.f90</string>
 	</array>
 	<key>showFileHierarchyDrawer</key>
 	<true/>
 	<key>windowFrame</key>
-	<string>{{933, 143}, {824, 1015}}</string>
+	<string>{{456, 4}, {824, 774}}</string>
 </dict>
 </plist>
