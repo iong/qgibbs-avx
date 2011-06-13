@@ -2,7 +2,7 @@ module vgw
     use utils
     implicit none
     private
-    public :: vgwinit, vgw0v, get_fx
+    public :: vgwinit, vgw0v, get_fx, vgw0
     
     integer :: Natom, Nmax, maxthreads
     real*8 :: BL
@@ -23,12 +23,12 @@ module vgw
 
 contains
 
-subroutine vgwinit(Nmax_, species, M, rcutoff)
+subroutine vgwinit(Nmax_, species, M, rcutoff, massx)
     use omp_lib
     implicit none
     integer, intent(in) :: Nmax_
     character(*), intent(in) :: species
-    real*8, intent(in), optional :: M, rcutoff
+    real*8, intent(in), optional :: M, rcutoff, massx
 
     Nmax = Nmax_
     maxthreads = omp_get_max_threads()
@@ -43,7 +43,7 @@ subroutine vgwinit(Nmax_, species, M, rcutoff)
         NGAUSS=3
         LJA(1:3) = (/ 0.669311, 0.199426, 0.092713/)
         LJC(1:3) = (/ 29380.898517, -303.054026, -40.574585 /)
-        mass = 2.0
+        mass = 2.0*0.020614788876D0
         rc = 8.0
         TAUMIN=1d-4
     else if (species=='pH2-4g') then
@@ -52,9 +52,16 @@ subroutine vgwinit(Nmax_, species, M, rcutoff)
                     0.06668611771781D0 /)
         LJC(1:4) = (/ 96609.488289873d0, 14584.62075507514d0, -365.460614956589d0, &
                     -19.5534697800036d0 /)
-        mass = 2.0
+        mass = 2.0*0.020614788876D0
         rc = 8.0
         TAUMIN=1d-4
+    else if (species == 'LJ') then
+        NGAUSS = 3
+        LJA(1:3) = (/ 6.65, 0.79, 2.6 /)
+        LJC(1:3) = (/ 1840d0, -1.48d0, -23.2d0 /)
+        mass = 1.0
+        rc = 2.5
+        taumin=1d-4
     end if
     
     if (present(M)) then
@@ -63,8 +70,11 @@ subroutine vgwinit(Nmax_, species, M, rcutoff)
     if (present(rcutoff)) then
         rc = rcutoff
     end if
-        
-    mass = mass*0.020614788876D0
+
+    if (present(massx)) then
+        mass = massx
+    end if
+
     invmass = 1.0/mass
 end subroutine
 
@@ -101,6 +111,7 @@ function get_fx() result(fx)
     real*8 :: fx(3, Natom)
     fx = - gamak(3,Natom)/T
 end function
+
 
 include 'interaction_lists.f90'
 include 'potential_energy.f90'
