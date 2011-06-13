@@ -5,19 +5,20 @@ SUBROUTINE vgw0fm(Q0, BL_, TAUMAX,W)
     REAL*8, intent(out) :: W
     real*8 :: LOGDET
     real*8 :: DT, next_stop
-    integer :: j, info
+    integer :: j, info, nlg
     logical :: mm = .FALSE.
 
-    double precision, allocatable :: Y(:), RWORK(:), YP(:)
+    double precision, allocatable :: Y(:), RWORK(:), YP(:), ATOL(:)
     integer, allocatable :: IWORK(:)
 
     integer :: NEQ, IPAR(10), ITOL, ITASK, IOPT, MF, ISTATE, LRW, LIW
-    double precision :: RPAR(10), RTOL, ATOL
+    double precision :: RPAR(10), RTOL
 
     Natom = size(Q0, 2)
     BL = BL_
 
-    NEQ = 3*Natom + (9*Natom**2 + 3*Natom/2) + 1
+    nlg = (9*Natom**2 + 3*Natom)/2
+    NEQ = 3*Natom + nlg + 1
 
     call init_gaussians(Q0, TAUMIN)
 
@@ -37,18 +38,25 @@ SUBROUTINE vgw0fm(Q0, BL_, TAUMAX,W)
 
     LRW = 20 + 16*NEQ
     LIW = 30
-    allocate(Y(NEQ), YP(NEQ), RWORK(LRW), IWORK(LIW))
+    allocate(Y(NEQ), YP(NEQ), ATOL(NEQ), RWORK(LRW), IWORK(LIW))
 
     call pack_y(Q, G, gama, y)
     !call RHSSFM(NEQ, 0d0, Y, YP)
 
-    ITOL=1
-    RTOL=1d-3
-    ATOL=1d-4
+    ITOL=2
+    RTOL=0
+    ATOL(1:3*Natom) = 1d-5
+    ATOL(3*Natom+1:3*Natom+nlg)=1d-6
+    ATOL(3*Natom+nlg+1) = 1
     ITASK=1
     ISTATE=1
-    IOPT = 0
-    MF = 10
+    IOPT = 1
+    MF=10
+    IWORK=0
+
+    RWORK(5)=5d-4
+    RWORK(6)=2d-2
+    RWORK(7)=1d-5
     !CALL DVODE(RHSSspFM,NEQ,Y,T,0.5*TAUMAX,ITOL,RTOL,ATOL,ITASK,ISTATE,IOPT,&
     !    RWORK,LRW,IWORK,LIW,JAC,MF,RPAR,IPAR)
     CALL DLSODE(RHSSFM,NEQ,Y,T,0.5*TAUMAX,ITOL,RTOL,ATOL,ITASK,ISTATE,IOPT,&
@@ -63,7 +71,7 @@ SUBROUTINE vgw0fm(Q0, BL_, TAUMAX,W)
     !call RHSSFM(NEQ, 0d0, Y, YP)
     !write (51, '(F16.8)'), YP
 
-    deallocate(y, yp, RWORK, IWORK)
+    deallocate(y, yp, ATOL, RWORK, IWORK)
 
     GU = G
     call dpotrf('U', 3*Natom, GU, 3*Natom, info)
@@ -98,7 +106,7 @@ subroutine Upot_tau0(Q)
     IMPLICIT NONE
     REAL*8, intent(in) :: Q(:,:)
     INTEGER  I,J,N
-    real*8 :: rsq,QIJ(3)
+    real*8 :: rsq, QIJ(3)
 
     N = size(Q, 2)
 
@@ -111,6 +119,15 @@ subroutine Upot_tau0(Q)
         ENDDO
     ENDDO
 end subroutine Upot_tau0
+
+
+function classical_Utot(Q0)
+    double precision, intent(in) :: Q0(:,:)
+    double precision :: classical_Utot
+
+    call Upot_tau0(Q0)
+    classical_Utot = U
+end function
 
 subroutine JAC()
 end subroutine
