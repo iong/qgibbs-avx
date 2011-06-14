@@ -1,5 +1,4 @@
 SUBROUTINE RHSS0(NEQ, T, Y, YP)
-    use omp_lib
     IMPLICIT NONE
     integer, intent(in) :: NEQ!, IPAR(:)
     double precision, intent(in) :: T, Y(NEQ)!, RPAR(:)
