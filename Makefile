@@ -5,7 +5,7 @@ ifeq "$(VPATH)" ""
 endif
 
 
-#DBG=1
+DBG=1
 COMPILER:=intel
 
 OS=$(shell uname -s)
@@ -28,8 +28,8 @@ LDFLAGS += $(OPTFLAGS)
 LIBS += -lcholmod -lamd -lcamd -lcolamd -lccolamd $(LAPACK)
 
 pimc:=utils.f90 pairint.f90 pimc.f90
-dimer:=utils.f90 mvgwmodeffpot.f90 vgw.f90 vgwfm.f90 dlsode.f vgwspb_H2_4G_Rc_Q_tau_SqrtMeff_Mar03.f dimer.f90
-cluster:=utils.f90 mvgwmodeffpot.f90 vgwspfm.f90  vgwfm.f90 dlsode.f vgwspb_H2_4G_Rc_Q_tau_SqrtMeff_Mar03.f cluster.f90
+ljdimer:=utils.f90 mvgwmodeffpot.f90 vgw.f90 vgwfm.f90 dlsode.f vgwspb_H2_4G_Rc_Q_tau_SqrtMeff_Mar03.f ljdimer.f90
+clustergs:=cholmod_logdet.c  dlsode.f  utils.f90 vgw.f90 vgwspfm.f90  vgwfm.f90 clustergs.f90
 mccluster:=det_sparse_g.c utils.f90 mvgwmodeffpot.f90 vgw.f90  vgwspfm.f90 dlsode.f vgwspb_H2_4G_Rc_Q_tau_SqrtMeff_Mar03.f mccluster.f90
 gibbs3:=utils.f90 pairint.f90 gibbs3.f90
 gibbs4:=gibbs4.f90
@@ -38,8 +38,7 @@ qgibbs:=cholmod_logdet.c utils.f90 dlsode.f vgwspfm.f90 qgibbs.f90
 objects=$(addsuffix .o,$(basename $(1)))
 
 
-#all: $(addsuffix $(EXT),gibbs4 gibbs3h gibbs3)
-all: cluster
+all: clustergs
 
 ifneq ($(wildcard $(VPATH)/deps.mk),)
 include $(VPATH)/deps.mk
@@ -72,10 +71,10 @@ gibbs3$(EXT): $(call objects,$(gibbs3))
 qgibbs: $(call objects,$(qgibbs))
 	$(FC) $(LDFLAGS) -o $@ $^ $(LIBS)
 
-dimer: $(call objects,$(dimer))
+ljdimer: $(call objects,$(ljdimer))
 	$(FC) $(LDFLAGS) -o $@ $^ $(LIBS)
 
-cluster: $(call objects,$(cluster))
+clustergs: $(call objects,$(clustergs))
 	$(FC) $(LDFLAGS) -o $@ $^ $(LIBS) 
 
 mccluster: $(call objects,$(mccluster))
@@ -87,10 +86,10 @@ pimc: $(call objects,$(pimc))
 gibbs4.ps: $(gibbs4)
 	a2ps -1 --borders=no -f 10 -o $@ $^
 
-vgw.o: vgw0.f90 rhss0.f90 interaction_lists.f90 potential_energy.f90
+vgw.o: vgw0.f90 rhss0.f90 interaction_lists.f90 potential_energy.f90 species.f90
 
-vgwfm.o: vgw0fm.f90 rhssfm.f90
-vgwspfm.o: vgw0spfm.f90 rhssspfm.f90 
+vgwfm.o: vgw0fm.f90 rhssfm.f90 species.f90
+vgwspfm.o: vgw0spfm.f90 rhssspfm.f90 species.f90
 
 clean:
 	$(RM) *.o *.mod *.mod.F90 *.opari.inc opari.rc opari.tab.c *.mod.F
