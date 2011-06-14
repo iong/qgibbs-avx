@@ -23,18 +23,6 @@ SUBROUTINE vgw0fm(Q0, BL_, TAUMAX,W)
     call init_gaussians(Q0, TAUMIN)
 
     T = TAUMIN
-    !next_stop = 0.5d0*TAUMAX
-    !do
-    !    DT = 1d-2*sqrt(T)
-    !    if (T+DT > next_stop) then
-    !        DT = next_stop - T
-    !        T = next_stop
-    !    else
-    !        T = T + DT
-    !    end if
-    !    call RHSSfm(DT, mm)
-    !    if (T == next_stop) exit
-    !end do
 
     LRW = 20 + 16*NEQ
     LIW = 30
@@ -45,18 +33,20 @@ SUBROUTINE vgw0fm(Q0, BL_, TAUMAX,W)
 
     ITOL=2
     RTOL=0
-    ATOL(1:3*Natom) = 1d-5
-    ATOL(3*Natom+1:3*Natom+nlg)=1d-6
-    ATOL(3*Natom+nlg+1) = 1
+    ATOL(1:3*Natom) = vgw_atol(1)
+    ATOL(3*Natom+1:3*Natom+nlg)=vgw_atol(2)
+    ATOL(3*Natom+nlg+1) = vgw_atol(3)
     ITASK=1
     ISTATE=1
     IOPT = 1
     MF=10
     IWORK=0
 
-    RWORK(5)=5d-4
-    RWORK(6)=2d-2
-    RWORK(7)=1d-5
+    IWORK(6) = 5000 !MXSTEP
+
+    RWORK(5)=dt0
+    RWORK(6)=dtmax
+    RWORK(7)=dtmin
     !CALL DVODE(RHSSspFM,NEQ,Y,T,0.5*TAUMAX,ITOL,RTOL,ATOL,ITASK,ISTATE,IOPT,&
     !    RWORK,LRW,IWORK,LIW,JAC,MF,RPAR,IPAR)
     CALL DLSODE(RHSSFM,NEQ,Y,T,0.5*TAUMAX,ITOL,RTOL,ATOL,ITASK,ISTATE,IOPT,&

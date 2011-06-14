@@ -40,18 +40,20 @@ SUBROUTINE vgw0spfm(Q0, BL_, TAUMAX, W)
 
     ITOL=2
     RTOL=0
-    ATOL(1:3*Natom) = 1d-3
-    ATOL(3*Natom+1:3*Natom+9*nnzb)=1d-4
-    ATOL(3*Natom+9*nnzb+1) = 1
+    ATOL(1:3*Natom) = vgw_atol(1)
+    ATOL(3*Natom+1:3*Natom+9*nnzb)=vgw_atol(2)
+    ATOL(3*Natom+9*nnzb+1) = vgw_atol(3)
     ITASK=1
     ISTATE=1
     IOPT = 1
     MF=10
     IWORK=0
 
-    RWORK(5)=5d-4
-    RWORK(6)=2d-3
-    RWORK(7)=1d-5
+    IWORK(6) = 5000 ! MXSTEP
+
+    RWORK(5)=dt0
+    RWORK(6)=dtmax
+    RWORK(7)=dtmin
 
     T=0
     y=0d0

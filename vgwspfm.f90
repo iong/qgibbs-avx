@@ -14,7 +14,7 @@ module vgwspfm
     
     integer(C_INT), allocatable, target :: Gbia(:), Gbja(:)
     real(C_DOUBLE), allocatable, target :: Gb(:,:,:)
-    
+
     real*8 :: T, gama, gamap, U
     real*8, allocatable :: Q(:,:), Gcsr(:), Gbdiag(:,:,:), &
             UXY(:,:,:), UXYdiag(:,:,:), UXYr(:), &
@@ -22,7 +22,7 @@ module vgwspfm
 
     real*8, allocatable, target :: GUT(:,:)
 
-    real*8 :: invmass, RC, TAUMIN, mass
+    real*8 :: invmass, RC, TAUMIN, mass, dt0, dtmax, dtmin, vgw_atol(3)
     logical :: finished
     integer :: nnbmax
 
@@ -32,17 +32,26 @@ module vgwspfm
             type(C_PTR), value :: G, ia, ja
             integer(C_INT), value :: N
         end function
+
+        subroutine init_cholmod(N, nnz, x, i, p) BIND(C)
+            use, intrinsic :: iso_c_binding
+            integer, value :: N, nnz
+            type(c_ptr) :: x, i, p
+        end subroutine
+
+        subroutine destroy_cholmod() BIND(C)
+        end subroutine
     end interface
 
 
 contains
 
-subroutine vgwspfminit(Np, species, M, rcutoff)
+subroutine vgwspfminit(Np, species, M, rcutoff, massx)
     use omp_lib
     implicit none
     integer, intent(in) :: Np
     character(*), intent(in) :: species
-    real*8, intent(in), optional :: M, rcutoff
+    real*8, intent(in), optional :: M, rcutoff, massx
 
     Natom = Np
     allocate(NNB(Natom), NBIDX(Natom,Natom), Gbia(Natom+1), Gbja(Natom), &
@@ -52,33 +61,7 @@ subroutine vgwspfminit(Np, species, M, rcutoff)
         UX(3,Natom), QP(3,Natom), GPb(3,3,4), GUT(3*Natom,3*Natom))
     
     
-    if (species=='pH2-3g') then
-        NGAUSS=3
-        LJA(1:3) = (/ 0.669311, 0.199426, 0.092713/)
-        LJC(1:3) = (/ 29380.898517, -303.054026, -40.574585 /)
-        mass = 2.0
-        rc = 8.0
-        TAUMIN=1d-4
-    else if (species=='pH2-4g') then
-        NGAUSS=4
-        LJA(1:4) = (/ 1.038252215127D0, 0.5974039109464D0, 0.196476572277834D0, &
-                    0.06668611771781D0 /)
-        LJC(1:4) = (/ 96609.488289873d0, 14584.62075507514d0, -365.460614956589d0, &
-                    -19.5534697800036d0 /)
-        mass = 2.0
-        rc = 8.0
-        TAUMIN=1d-4
-    end if
-    
-    if (present(M)) then
-        mass = M
-    end if
-    if (present(rcutoff)) then
-        rc = rcutoff
-    end if
-        
-    mass = mass*0.020614788876D0
-    invmass = 1.0/mass
+    include 'species.f90'
 end subroutine
 
 

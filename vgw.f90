@@ -2,109 +2,44 @@ module vgw
     use utils
     implicit none
     private
-    public :: vgwinit, vgw0v, get_fx, vgw0
+    public :: vgwinit, get_fx, vgw0, vgwcleanup
     
     integer :: Natom, Nmax, maxthreads
-    real*8 :: BL
+    real*8 :: BL, rfullmatsq
     real*8, dimension(10) :: LJA, LJC
     integer :: NGAUSS
     integer, allocatable :: NBIDX(:,:), NNB(:)
     
-    real*8 :: T, gama, gamap
+    real*8 :: T, gama, gamap, U, TRUXXG
     real*8, allocatable :: Q(:,:), G(:,:,:), Qnk(:,:,:), gamak(:,:), &
                             QP(:,:), GP(:,:,:)
                             
-    real*8, allocatable :: UPV(:,:,:), UPM(:,:,:,:), TRUXXG(:), U(:)
+    real*8, allocatable :: UPV(:,:), UPM(:,:,:)
     
-    real*8 :: invmass, RC, TAUMIN, mass
+    real*8 :: invmass, RC, TAUMIN, mass, dt0, dtmax, dtmin, vgw_atol(3)
     logical :: finished
     integer :: tid=0, nthr=1, thread_start, thread_stop, nnbmax
-!$OMP THREADPRIVATE(tid, nthr, thread_start, thread_stop, nnbmax)
+!$OMP THREADPRIVATE(tid, thread_start, thread_stop, nnbmax)
 
 contains
 
 subroutine vgwinit(Nmax_, species, M, rcutoff, massx)
-    use omp_lib
     implicit none
     integer, intent(in) :: Nmax_
     character(*), intent(in) :: species
     real*8, intent(in), optional :: M, rcutoff, massx
 
     Nmax = Nmax_
-    maxthreads = omp_get_max_threads()
-    allocate(NNB(Nmax), NBIDX(Nmax,Nmax), upv(3,Nmax,0:maxthreads-1), &
-        upm(3,3,Nmax,0:maxthreads-1), TRUXXG(0:maxthreads-1), &
-        U(0:maxthreads-1),&
-        Q(3,Nmax), G(3,3,Nmax), Qnk(3,3,Nmax), gamak(3,Nmax), QP(3,Nmax), &
-        GP(3,3,Nmax))
+    allocate(NNB(Nmax), NBIDX(Nmax,Nmax), upv(3,Nmax), &
+        upm(3,3,Nmax), g(3,3,Nmax))
     
     
-    if (species=='pH2-3g') then
-        NGAUSS=3
-        LJA(1:3) = (/ 0.669311, 0.199426, 0.092713/)
-        LJC(1:3) = (/ 29380.898517, -303.054026, -40.574585 /)
-        mass = 2.0*0.020614788876D0
-        rc = 8.0
-        TAUMIN=1d-4
-    else if (species=='pH2-4g') then
-            NGAUSS=4
-        LJA(1:4) = (/ 1.038252215127D0, 0.5974039109464D0, 0.196476572277834D0, &
-                    0.06668611771781D0 /)
-        LJC(1:4) = (/ 96609.488289873d0, 14584.62075507514d0, -365.460614956589d0, &
-                    -19.5534697800036d0 /)
-        mass = 2.0*0.020614788876D0
-        rc = 8.0
-        TAUMIN=1d-4
-    else if (species == 'LJ') then
-        NGAUSS = 3
-        LJA(1:3) = (/ 6.65, 0.79, 2.6 /)
-        LJC(1:3) = (/ 1840d0, -1.48d0, -23.2d0 /)
-        mass = 1.0
-        rc = 2.5
-        taumin=1d-4
-    end if
-    
-    if (present(M)) then
-        mass = M
-    end if
-    if (present(rcutoff)) then
-        rc = rcutoff
-    end if
-
-    if (present(massx)) then
-        mass = massx
-    end if
-
-    invmass = 1.0/mass
+include 'species.f90'
 end subroutine
 
 
-subroutine vgwfmcleanup()
-    deallocate(NNB, NBIDX, UPV, UPM, TRUXXG, U, Q, G, QP, GP)
-end subroutine
-
-
-subroutine init_gaussians(q0, tau, mm)
-    REAL*8, intent(in) :: Q0(:,:), tau
-    logical, intent(in) :: mm
-    real*8, parameter :: E3(3,3) = reshape( (/1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0/), (/3, 3/) )
-    
-    if (mm) then
-        call Upot_UX_tau0(Q0)
-    else
-        call Upot_tau0(Q0)
-    end if
-
-!$OMP SINGLE
-    gama = -tau*sum(U(0:nthr-1))
-    Q(:,1:Natom) = Q0
-
-    G(:,:,1:Natom) = spread(tau*invmass*E3, 3, Natom)
-    if (mm) then
-        Qnk(:,:,1:Natom) = spread(E3, 3, Natom)
-        gamak(:,1:Natom) = - tau * UPV(:,1:Natom,0)
-    end if
-!$OMP END SINGLE
+subroutine vgwcleanup()
+    deallocate(NNB, NBIDX, UPV, UPM, g)
 end subroutine
 
 function get_fx() result(fx)
@@ -113,8 +48,24 @@ function get_fx() result(fx)
 end function
 
 
+subroutine unpack_g(y, g)
+    double precision, intent(in) :: y(:)
+    double precision, intent(out) :: g(:,:,:)
+    integer :: i, k
+
+    i=0
+    do k=3*Natom+1,9*Natom,6
+        i=i+1
+        g(:,1,i) = y(k : k+2)
+        g(1, 2, i) = y(k+1)
+        g(2:3,2,i) = y(k+3 : k+4)
+        g(1, 3, i) = y(k+2)
+        g(2, 3, i) = y(k+4)
+        g(3, 3, i) = y(k+5)
+    end do
+end subroutine
+
 include 'interaction_lists.f90'
-include 'potential_energy.f90'
 include 'vgw0.f90'
 !include 'vgw1.f90'
 include 'rhss0.f90'

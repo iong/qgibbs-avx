@@ -1,93 +1,67 @@
-SUBROUTINE vgw0v(Q0, BL_, TAUMAX,TAUI, W, WX)
+SUBROUTINE vgw0(Q0, BL_, TAUMAX, W, WX)
     use omp_lib
     IMPLICIT NONE
-    REAL*8, intent(in) :: Q0(:,:), TAUMAX(:), TAUI, BL_
-    REAL*8, intent(out) :: W(:)
+    REAL*8, intent(in) :: Q0(:,:), TAUMAX, BL_
+    REAL*8, intent(out) :: W
     real*8, intent(out), optional :: WX(:,:)
     real*8 :: LOGDET
     real*8 :: DT, next_stop
     integer :: i, j, chunk_size
     logical :: mm = .FALSE.
 
+    double precision, allocatable :: Y(:), RWORK(:), YP(:), ATOL(:)
+    integer, allocatable :: IWORK(:)
+
+    integer :: NEQ, IPAR(10), ITOL, ITASK, IOPT, MF, ISTATE, LRW, LIW
+    double precision :: RPAR(10), RTOL
 
     Natom = size(Q0, 2)
     BL = BL_
-    if (present(WX)) mm = .TRUE.
 
-!$OMP PARALLEL PRIVATE(I,J, T, DT, next_stop)
-    if (TAUI <= 0.0d0) then
-        T = TAUMIN
-    else
-        T = 0.5*TAUI
-    endif
- 
-    tid = OMP_get_thread_num()
-    nthr = OMP_get_num_threads()
+    NEQ = 9*Natom + 1
+    if (present(WX)) NEQ = NEQ + 12*Natom
 
-    chunk_size = Natom/nthr
-    thread_start=tid*chunk_size + 1
-    thread_stop=(tid+1)*chunk_size
-    if (tid==nthr-1) then
-       thread_stop = Natom
-    end if
+    LRW = 20 + 16*NEQ
+    LIW = 30
 
+    allocate(Y(NEQ), YP(NEQ), ATOL(NEQ), RWORK(LRW), IWORK(LIW))
 
-    if (TAUI <= 0.0d0) then
-        call interaction_lists(Q0) !Determine which particles
-        call init_gaussians(Q0, TAUMIN, mm)
-    end if
+    ITOL=2
+    RTOL=0
+    ATOL(1:3*Natom) = vgw_atol(1)
+    ATOL(3*Natom+1:3*Natom+6*Natom)=vgw_atol(2)
+    ATOL(NEQ-nthr + 1 : NEQ) = vgw_atol(3)
+    ITASK=1
+    ISTATE=1
+    IOPT = 1
+    MF=10
+    IWORK=0
+
+    IWORK(6) = 5000 !MXSTEP
+
+    RWORK(5)=dt0
+    RWORK(6)=dtmax
+    RWORK(7)=dtmin
+
+    call interaction_lists(Q0) !Determine which particles
     
-!$OMP BARRIER
-    do i=1,size(TAUMAX)
-        next_stop = 0.5d0*TAUMAX(i)
-        do
-            DT = 1d-4!1d-2*sqrt(T)
-            if (T+DT > next_stop) then
-                DT = next_stop - T
-                T = next_stop
-            else
-                T = T + DT
-            end if
-            call RHSS0(DT, mm)
-            if (T == next_stop) exit
-        end do
+    T = 0
+    y = 0d0
+    y(1:3*Natom) = reshape(Q0, (/ 3*NAtom /) )
 
-!$OMP SINGLE
+    CALL DLSODE(RHSS0,NEQ,Y,T,0.5*TAUMAX,ITOL,RTOL,ATOL,ITASK,ISTATE,IOPT,&
+        RWORK,LRW,IWORK,LIW,JAC,MF)
+
     LOGDET=0d0
-!$OMP END SINGLE
-!$OMP DO SCHEDULE(STATIC) REDUCTION(+:LOGDET)
-        DO j=1,Natom
-            LOGDET = LOGDET + LOG(DETM(G(:,:,j)))
-        ENDDO
-!$OMP END DO
+    DO j=1,Natom
+        LOGDET = LOGDET + LOG( DETM_S(y(3*Natom + 6*j - 5 : 3*Natom + 6*j)) )
+    ENDDO
 
-!$OMP MASTER
-        W(i)=-(1/TAUMAX(i))*(2.0*gama - 0.5*LOGDET)! - 3.0*Natom*log(2.0*sqrt(M_PI)))
-!$OMP END MASTER
-    end do
-!$OMP END PARALLEL
 
-    if (present(WX)) then
-        WX(:,1:Natom) =  gamak(:,1:Natom) / T
-    end if
+    W=-(1/TAUMAX)*(2.0*y(NEQ) - 0.5*LOGDET)
+    deallocate(y, yp, RWORK, IWORK, ATOL)
 END SUBROUTINE
 
-
-SUBROUTINE vgw0(Q0, BL_, TAUMAX,TAUI, W, WX)
-IMPLICIT NONE
-REAL*8, intent(in) :: Q0(:,:), TAUMAX, TAUI, BL_
-REAL*8, intent(out) :: W
-real*8, intent(out), optional :: WX(:,:)
-
-real*8, dimension(1) :: W_, TAUMAX_
-
-    TAUMAX_(1) = TAUMAX
-    if (present(WX)) then
-        call vgw0v(Q0, BL_, TAUMAX_, TAUI, W_, WX)
-    else
-        call vgw0v(Q0, BL_, TAUMAX_, TAUI, W_)
-    end if
-    W = W_(1)
-END SUBROUTINE
-
+subroutine JAC()
+end subroutine
 ! vim:et
