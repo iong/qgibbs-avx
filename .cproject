@@ -605,15 +605,16 @@
 				<buildTargets>
 					<target name="clean" path="config" targetID="org.eclipse.cdt.build.MakeTargetBuilder">
 						<buildCommand>make</buildCommand>
+						<buildArguments>-f ${workspace_loc:/gibbs2/Makefile}</buildArguments>
 						<buildTarget>clean</buildTarget>
 						<stopOnError>true</stopOnError>
 						<useDefaultCommand>true</useDefaultCommand>
 						<runAllBuilders>true</runAllBuilders>
 					</target>
-					<target name="cluster" path="" targetID="org.eclipse.cdt.build.MakeTargetBuilder">
+					<target name="clustergs" path="" targetID="org.eclipse.cdt.build.MakeTargetBuilder">
 						<buildCommand>make</buildCommand>
-						<buildArguments>-f ${workspace_loc:/gibbs2/Makefile}</buildArguments>
-						<buildTarget>cluster</buildTarget>
+						<buildArguments>-f /home/ionut/Dropbox/src/gibbs2/Makefile</buildArguments>
+						<buildTarget>clustergs</buildTarget>
 						<stopOnError>true</stopOnError>
 						<useDefaultCommand>true</useDefaultCommand>
 						<runAllBuilders>true</runAllBuilders>
@@ -636,6 +637,7 @@
 					</target>
 					<target name="clean" path="" targetID="org.eclipse.cdt.build.MakeTargetBuilder">
 						<buildCommand>make</buildCommand>
+						<buildArguments>-f ${workspace_loc:/gibbs2/Makefile}</buildArguments>
 						<buildTarget>clean</buildTarget>
 						<stopOnError>true</stopOnError>
 						<useDefaultCommand>true</useDefaultCommand>
@@ -645,6 +647,14 @@
 						<buildCommand>make</buildCommand>
 						<buildArguments>-f /home/ionut/Dropbox/src/gibbs2/Makefile</buildArguments>
 						<buildTarget>qgibbs</buildTarget>
+						<stopOnError>true</stopOnError>
+						<useDefaultCommand>true</useDefaultCommand>
+						<runAllBuilders>true</runAllBuilders>
+					</target>
+					<target name="dimer" path="" targetID="org.eclipse.cdt.build.MakeTargetBuilder">
+						<buildCommand>make</buildCommand>
+						<buildArguments>-f /Users/ionut/Dropbox/src/gibbs2/Makefile</buildArguments>
+						<buildTarget>dimer</buildTarget>
 						<stopOnError>true</stopOnError>
 						<useDefaultCommand>true</useDefaultCommand>
 						<runAllBuilders>true</runAllBuilders>
@@ -664,16 +674,7 @@
 					<extension id="org.eclipse.cdt.core.GCCErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
 					<extension id="org.eclipse.cdt.core.GASErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
 					<extension id="org.eclipse.cdt.core.GLDErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
-					<extension id="org.eclipse.photran.core.AbsoftErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
-					<extension id="org.eclipse.cdt.core.VCErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
-					<extension id="org.eclipse.photran.core.GFortranErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
-					<extension id="org.eclipse.photran.core.G95FortranErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
-					<extension id="org.eclipse.cdt.core.MakeErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
-					<extension id="org.eclipse.photran.core.LaheyFortranErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
-					<extension id="org.eclipse.cdt.core.ICCErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
-					<extension id="org.eclipse.photran.core.NAGErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
-					<extension id="org.eclipse.photran.core.PGIErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
-					<extension id="org.eclipse.photran.core.IntelFortranErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
+					<extension id="org.eclipse.photran.core.intel.IntelCompilerErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
 				</extensions>
 			</storageModule>
 			<storageModule moduleId="cdtBuildSystem" version="4.0.0">
@@ -1262,15 +1263,16 @@
 				<buildTargets>
 					<target name="clean" path="config" targetID="org.eclipse.cdt.build.MakeTargetBuilder">
 						<buildCommand>make</buildCommand>
+						<buildArguments>-f ${workspace_loc:/gibbs2/Makefile}</buildArguments>
 						<buildTarget>clean</buildTarget>
 						<stopOnError>true</stopOnError>
 						<useDefaultCommand>true</useDefaultCommand>
 						<runAllBuilders>true</runAllBuilders>
 					</target>
-					<target name="cluster" path="" targetID="org.eclipse.cdt.build.MakeTargetBuilder">
+					<target name="clustergs" path="" targetID="org.eclipse.cdt.build.MakeTargetBuilder">
 						<buildCommand>make</buildCommand>
-						<buildArguments>-f ${workspace_loc:/gibbs2/Makefile}</buildArguments>
-						<buildTarget>cluster</buildTarget>
+						<buildArguments>-f /home/ionut/Dropbox/src/gibbs2/Makefile</buildArguments>
+						<buildTarget>clustergs</buildTarget>
 						<stopOnError>true</stopOnError>
 						<useDefaultCommand>true</useDefaultCommand>
 						<runAllBuilders>true</runAllBuilders>
@@ -1293,6 +1295,7 @@
 					</target>
 					<target name="clean" path="" targetID="org.eclipse.cdt.build.MakeTargetBuilder">
 						<buildCommand>make</buildCommand>
+						<buildArguments>-f ${workspace_loc:/gibbs2/Makefile}</buildArguments>
 						<buildTarget>clean</buildTarget>
 						<stopOnError>true</stopOnError>
 						<useDefaultCommand>true</useDefaultCommand>
@@ -1302,6 +1305,14 @@
 						<buildCommand>make</buildCommand>
 						<buildArguments>-f /home/ionut/Dropbox/src/gibbs2/Makefile</buildArguments>
 						<buildTarget>qgibbs</buildTarget>
+						<stopOnError>true</stopOnError>
+						<useDefaultCommand>true</useDefaultCommand>
+						<runAllBuilders>true</runAllBuilders>
+					</target>
+					<target name="dimer" path="" targetID="org.eclipse.cdt.build.MakeTargetBuilder">
+						<buildCommand>make</buildCommand>
+						<buildArguments>-f /Users/ionut/Dropbox/src/gibbs2/Makefile</buildArguments>
+						<buildTarget>dimer</buildTarget>
 						<stopOnError>true</stopOnError>
 						<useDefaultCommand>true</useDefaultCommand>
 						<runAllBuilders>true</runAllBuilders>
