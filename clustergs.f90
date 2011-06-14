@@ -5,14 +5,14 @@ program clustergs
     use vgwfm
     implicit none
 
-    character(256) :: arg, coords
+    character(256) :: arg, coords, waste
 
-    integer, parameter :: Npts=10
+    integer, parameter :: Npts=20
     integer :: i, Natom=180
 
-    double precision :: U(4, Npts), endtime(4), begtime(4)
-    double precision :: deBoer, deBoerMin=0.01, deBoerMax=0.35, kT=0.1d0, &
-        RC=100d0, BL=100d0
+    double precision :: U(4, Npts), endtime(3), begtime(3)
+    double precision :: deBoer(Npts), deBoerMin=0.001, deBoerMax=0.35, &
+        kT=0.05d0, RC=100d0, BL=100d0
 
     double precision, allocatable :: r(:,:), r0(:,:)
 
@@ -42,17 +42,17 @@ program clustergs
     U = 0
 
     call vgwfminit(natom, 'LJ')
-    U(1,:) = classical_Utot(r0(:,1:2))
+    U(1,:) = classical_Utot(r0, BL)
     call vgwfmcleanup()
 
-
+    do i = 1,Npts
+        deBoer(i) = exp(log(deBoerMin) &
+            + log(deBoerMax/deBoerMin)*real(i-1)/real(Npts-1))
+    end do
+    write (*,*) deBoer
     call cpu_time(begtime(1))
     do i = 1,Npts
-        deBoer = deBoerMin + (deBoerMax-deBoerMin)*real(i-1)/real(Npts-1)
-
-        write (*,*) i, deBoer
-
-        call vgwinit(natom, 'LJ', massx=1/deBoer**2)
+        call vgwinit(natom, 'LJ', massx=1/deBoer(i)**2)
         call vgw0(r0, BL, 1d0/kT, U(2, i))
         call vgwcleanup()
     end do
@@ -60,11 +60,7 @@ program clustergs
 
     call cpu_time(begtime(2))
     do i = 1,Npts
-        deBoer = deBoerMin + (deBoerMax-deBoerMin)*real(i-1)/real(Npts-1)
-
-        write (*,*) i, deBoer
-
-        call vgwfminit(natom, 'LJ', massx=1d0/deBoer**2)
+        call vgwfminit(natom, 'LJ', massx=1d0/deBoer(i)**2)
         call vgw0fm(r0, BL, 1d0/kT, U(3, i))
         call vgwfmcleanup()
     end do
@@ -72,15 +68,15 @@ program clustergs
 
     call cpu_time(begtime(3))
     do i = 1,Npts
-        deBoer = deBoerMin + (deBoerMax-deBoerMin)*real(i-1)/real(Npts-1)
-
-        write (*,*) i, deBoer
-
-        call vgwspfminit(natom, 'LJ', massx=1/deBoer**2)
+        call vgwspfminit(natom, 'LJ', massx=1/deBoer(i)**2)
         call vgw0spfm(r0, BL, 1d0/kT, U(4, i))
         call vgwspfmcleanup()
     end do
     call cpu_time(endtime(3))
+
+    U(2,:) = U(2,:) + U(1,1) - U(2,1)
+    U(3,:) = U(3,:) + U(1,1) - U(3,1)
+    U(4,:) = U(4,:) + U(1,1) - U(4,1)
 
     
     write (*,*) endtime - begtime
