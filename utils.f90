@@ -116,6 +116,45 @@ subroutine detminvm(A, DETA, INVA)
     INVA = INVA * INVDET
 end subroutine detminvm
 
+subroutine detminvm_sg(A, DETA, INVA)
+    implicit none
+    double precision, intent(in) :: A(6)
+    double precision, intent(out) :: DETA, INVA(3,3)
+    double precision :: INVDET
+
+    INVA(1,1) = A(4)*A(6)-A(5)**2
+    INVA(2,1) = -A(2)*A(6)+A(3)*A(5)
+    INVA(3,1) = A(2)*A(5)-A(3)*A(4)
+    INVA(1,2) = INVA(2,1)
+    INVA(2,2) = A(1)*A(6)-A(3)**2
+    INVA(3,2) = -A(1)*A(5)+A(3)*A(2)
+    INVA(1,3) = INVA(3,1)
+    INVA(2,3) = INVA(3,2)
+    INVA(3,3) = A(1)*A(4)-A(2)**2
+
+    DETA = INVA(1,1)*A(1)+INVA(2,1)*A(2)+INVA(3,1)*A(3)
+    INVDET = 1.0d0/DETA
+    INVA = INVA * INVDET
+end subroutine detminvm_sg
+
+subroutine detminvm_ss(A, DETA, INVA)
+    implicit none
+    double precision, intent(in) :: A(6)
+    double precision, intent(out) :: DETA, INVA(6)
+    double precision :: INVDET
+
+    INVA(1) = A(4)*A(6)-A(5)**2
+    INVA(2) = -A(2)*A(6)+A(3)*A(5)
+    INVA(3) = A(2)*A(5)-A(3)*A(4)
+    INVA(4) = A(1)*A(6)-A(3)**2
+    INVA(5) = -A(1)*A(5)+A(3)*A(2)
+    INVA(6) = A(1)*A(4)-A(2)**2
+
+    DETA = sum(INVA(1:3) * A(1:3) )
+    INVDET = 1.0d0/DETA
+    INVA = INVA * INVDET
+end subroutine detminvm_ss
+
 pure function detm(A)
     implicit none
     double precision, intent(in) :: A(3,3)
@@ -125,6 +164,16 @@ pure function detm(A)
           + ( -A(1,2)*A(3,3) + A(1,3)*A(3,2) ) * A(2,1) &
           + ( A(1,2)*A(2,3) - A(1,3)*A(2,2) ) * A(3,1)
 end function detm
+
+pure function detm_s(A)
+    implicit none
+    double precision, intent(in) :: A(6)
+    double precision :: DETM_S
+
+    DETM_S = (A(4)*A(6) - A(5)**2) * A(1)&
+          + ( -A(2)*A(6) + A(3)*A(5) ) * A(2) &
+          + ( A(2)*A(5) - A(3)*A(4) ) * A(3)
+end function detm_s
 
 function outer_product(l, r) result(m)
     double precision, intent(in) :: l(:), r(:)
