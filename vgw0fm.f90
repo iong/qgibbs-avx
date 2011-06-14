@@ -42,7 +42,7 @@ SUBROUTINE vgw0fm(Q0, BL_, TAUMAX,W)
     MF=10
     IWORK=0
 
-    IWORK(6) = 5000 !MXSTEP
+    IWORK(6) = 50000 !MXSTEP
 
     RWORK(5)=dt0
     RWORK(6)=dtmax
@@ -71,7 +71,7 @@ SUBROUTINE vgw0fm(Q0, BL_, TAUMAX,W)
     ENDDO
     LOGDET = 2d0* LOGDET
 
-    W=-(1/TAUMAX)*(2.0*gama - 0.5*LOGDET)! - 3.0*Natom*log(2.0*sqrt(M_PI)))
+    W=-(1/TAUMAX)*(2.0*gama - 0.5*LOGDET - 1.5*Natom*log(4.0*M_PI))
     !write (*,*) gama
 END SUBROUTINE
 
@@ -111,10 +111,11 @@ subroutine Upot_tau0(Q)
 end subroutine Upot_tau0
 
 
-function classical_Utot(Q0)
-    double precision, intent(in) :: Q0(:,:)
+function classical_Utot(Q0, BLX)
+    double precision, intent(in) :: Q0(:,:), BLX
     double precision :: classical_Utot
 
+    BL = BLX
     call Upot_tau0(Q0)
     classical_Utot = U
 end function

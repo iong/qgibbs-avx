@@ -37,7 +37,7 @@ SUBROUTINE vgw0(Q0, BL_, TAUMAX, W, WX)
     MF=10
     IWORK=0
 
-    IWORK(6) = 5000 !MXSTEP
+    IWORK(6) = 50000 !MXSTEP
 
     RWORK(5)=dt0
     RWORK(6)=dtmax
@@ -58,7 +58,7 @@ SUBROUTINE vgw0(Q0, BL_, TAUMAX, W, WX)
     ENDDO
 
 
-    W=-(1/TAUMAX)*(2.0*y(NEQ) - 0.5*LOGDET)
+    W=-(1/TAUMAX)*(2.0*y(NEQ) - 0.5*LOGDET - 1.5*Natom*log(4.0*M_PI))
     deallocate(y, yp, RWORK, IWORK, ATOL)
 END SUBROUTINE
 

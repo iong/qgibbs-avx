@@ -24,6 +24,7 @@
         rc = 2.5
         taumin=1d-4
         rfullmatsq = 1.667d0**2
+        vgw_atol = (/ 1d-5, 1d-06, .1d0 /)
     end if
 
     if (present(M)) then

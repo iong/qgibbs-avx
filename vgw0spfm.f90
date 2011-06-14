@@ -49,7 +49,7 @@ SUBROUTINE vgw0spfm(Q0, BL_, TAUMAX, W)
     MF=10
     IWORK=0
 
-    IWORK(6) = 5000 ! MXSTEP
+    IWORK(6) = 50000 ! MXSTEP
 
     RWORK(5)=dt0
     RWORK(6)=dtmax
@@ -74,7 +74,7 @@ SUBROUTINE vgw0spfm(Q0, BL_, TAUMAX, W)
 
     logdetg = cholmod_logdet(C_LOC(Gb), C_LOC(Gbia), C_LOC(Gbja), Natom)
 
-    W=-(1/TAUMAX)*(2.0*gama - 0.5*logdetg)! - 3.0*Natom*log(2.0*sqrt(M_PI)))
+    W=-(1/TAUMAX)*(2.0*gama - 0.5*logdetg - 1.5*Natom*log(4.0*M_PI))
     !write (*,*) gama
 END SUBROUTINE
 
