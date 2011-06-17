@@ -1,90 +1,109 @@
 program clustergs
-!    use vgw
     use vgw
     use vgwspfm
     use vgwfm
+    use utils, only: M_PI
     implicit none
 
     character(256) :: arg, coords, waste
 
-    integer, parameter :: Npts=20
-    integer :: i, Natom=180
+    integer :: i, Natom=180, Npts=20
 
-    double precision :: U(4, Npts), endtime(3), begtime(3)
-    double precision :: deBoer(Npts), deBoerMin=0.001, deBoerMax=0.35, &
-        kT=0.05d0, RC=100d0, BL=100d0
+    double precision :: endtime(3), begtime(3), mass, taustop
+    double precision ::  deBoerMin=0.025, deBoerMax=0.35, &
+        kT=0.001d0, RC=100d0, BL=100d0, sigma0 = 2.749, epsilon0 = 35.6d0
 
-    double precision, allocatable :: r(:,:), r0(:,:)
+    double precision, allocatable :: r(:,:), r0(:,:), deBoer(:), U(:,:), Uinf(:)
 
-    if (command_argument_count() < 2) then
-        write (2,*) 'The program needs two argumens: <N> <coords.dat>'
+!    if (command_argument_count() < 2) then
+!        write (2,*) 'The program needs two argumens: <N> <coords.dat>'
+!    end if
+!
+!    call get_command_argument(1, arg)
+!    read(arg, *) Natom
+!
+!    allocate(r0(3,Natom))
+!
+!    call get_command_argument(2, coords)
+!    open(33, file=trim(coords))
+!    read(33, *) r0
+!    close(33)
+
+    call get_command_argument(1, coords)
+
+    if (command_argument_count() >= 2) then
+        call get_command_argument(2, arg)
+        read(arg, *) deBoerMin
+        deBoerMax = deBoerMin
+        Npts = 1
     end if
 
-    call get_command_argument(1, arg)
-    read(arg, *) Natom
-    
-    allocate(r0(3,Natom))
-
-    call get_command_argument(2, coords)
     open(33, file=trim(coords))
-    read(33, *) r0
-    close(33)
-    
-    !if (command_argument_count() >= 3) then
-    !    call get_command_argument(3, arg)
-    !    read(arg, *) deBoer
-    !    call vgwspfminit(natom, 'LJ', massx=1/deBoer**2)
-    !end if
-
-    !call vgwinit(natom, 'pH2-4g', RCUTOFF=RC)
+    read (33, *) Natom
 
 
+    allocate(r0(3,Natom), Uinf(Npts), U(4,Npts), deBoer(Npts))
     U = 0
 
-    call vgwfminit(natom, 'LJ')
-    U(1,:) = classical_Utot(r0, BL)
-    call vgwfmcleanup()
+    read(33,*) U(1,1) !deBoer(1), U(1,1)
+    read(33, *) (waste, r0(:,i), i=1,Natom)
+    close(33)
+    r0 = r0 / sigma0
 
-    do i = 1,Npts
-        deBoer(i) = exp(log(deBoerMin) &
-            + log(deBoerMax/deBoerMin)*real(i-1)/real(Npts-1))
-    end do
-    write (*,*) deBoer
+
+
+    !call vgwfminit(natom, 'LJ')
+    !U(1,:) = classical_Utot(r0, BL)
+    !call vgwfmcleanup()
+    U(1,:) = U(1,1)
+
+    if (Npts>1) then
+	    do i = 1,Npts
+	        deBoer(i) = exp(log(deBoerMin) &
+	            + log(deBoerMax/deBoerMin)*real(i-1)/real(Npts-1))
+	        !deBoer(i) = deBoerMin + (deBoerMax-deBoerMin)*real(i-1)/real(Npts-1)
+	        Uinf(i) = 1.5*Natom*kT
+	    end do
+	else
+        deBoer = deBoerMin
+    end if
+
+
     call cpu_time(begtime(1))
     do i = 1,Npts
-        call vgwinit(natom, 'LJ', massx=1/deBoer(i)**2)
-        call vgw0(r0, BL, 1d0/kT, U(2, i))
+        taustop = (deBoer(Npts)/deBoer(i))/kT
+        mass = 1/deBoer(i)**2
+        write (*,*) taustop
+        call vgwinit(natom, 'LJ', massx=mass)
+        call vgw0(r0, BL, taustop, U(2, i))
         call vgwcleanup()
+
+        call vgwfminit(natom, 'LJ', massx=mass)
+        call vgw0fm(r0, BL, taustop, U(3, i))
+        call vgwfmcleanup()
+
+        call vgwspfminit(natom, 'LJ', RCUTOFF=100d0, massx=mass)
+        call vgw0spfm(r0, BL, taustop, U(4, i))
+        call vgwspfmcleanup()
     end do
     call cpu_time(endtime(1))
 
-    call cpu_time(begtime(2))
-    do i = 1,Npts
-        call vgwfminit(natom, 'LJ', massx=1d0/deBoer(i)**2)
-        call vgw0fm(r0, BL, 1d0/kT, U(3, i))
-        call vgwfmcleanup()
-    end do
-    call cpu_time(endtime(2))
 
-    call cpu_time(begtime(3))
-    do i = 1,Npts
-        call vgwspfminit(natom, 'LJ', massx=1/deBoer(i)**2)
-        call vgw0spfm(r0, BL, 1d0/kT, U(4, i))
-        call vgwspfmcleanup()
-    end do
-    call cpu_time(endtime(3))
+    U(2,:) = U(2,:) - Uinf!+ U(1,1) - U(2,1)
+    U(3,:) = U(3,:) - Uinf!+ U(1,1) - U(3,1)
+    U(4,:) = U(4,:) - Uinf!+ U(1,1) - U(4,1)
 
-    U(2,:) = U(2,:) + U(1,1) - U(2,1)
-    U(3,:) = U(3,:) + U(1,1) - U(3,1)
-    U(4,:) = U(4,:) + U(1,1) - U(4,1)
+    U( (/ 2, 3, 4 /), :) = U( (/ 2, 3, 4 /), :) * epsilon0
 
-    
     write (*,*) endtime - begtime
 
-    arg=coords(1:len_trim(coords)-4) // '_groundstate.dat'
-    open(33,file=trim(arg),status='REPLACE')
-    write (33, '(5F15.6)') (&
-        deBoerMin + (deBoerMax-deBoerMin)*real(i-1)/real(Npts-1), U(:,i), &
-        i=1,Npts)
-    close(33)
+    !if (Npts==1) then
+    !    write (*, '(5F15.6)') deBoer(1), U(:,1)
+    !else
+	    arg=coords(1:len_trim(coords)-4) // '_groundstate.dat'
+	    open(33,file=trim(arg),status='REPLACE')
+	    write (33, '(5F15.6)') (deBoer(i), U(:,i), i=1,Npts)
+	    close(33)
+    !end if
+
 end program clustergs
