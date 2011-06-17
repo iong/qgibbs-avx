@@ -67,6 +67,7 @@ double cholmod_logdet(double *Gb, int *Gbia, int *Gbja, int Natom)
     Lx = Ls->x;
     Lp = Ls->p;
     logDetA = 0.0;
+
     s = 1;
     for (i=0; i<3*Natom; i++) {
         if (Lx[Lp[i]] < 0.0) {
@@ -89,7 +90,27 @@ double cholmod_logdet(double *Gb, int *Gbia, int *Gbja, int Natom)
 
     return logDetA;
 }
+/*
+double G_UPM_G(double *Gb, double *UXYb, int *Gbia, int *Gbja, int Natom)
+{
+	N = 3*Natom;
+		nnzb = Gbia[Natom];
+		nnz = 9*nnzb;
+	    G = cs_spalloc(N, N, nnz, 1, 0);
+	    UXY = cs_spalloc(N, N, nnz, 1, 0);
+	    mblk = 3;
+		ldabsr = 9;
+		mkl_dcsrbsr(job, &Natom, &mblk, &ldabsr, G->x, G->i, G->p, Gb, Gbja, Gbia, &info);
+		mkl_dcsrbsr(job, &Natom, &mblk, &ldabsr, UXY->x, UXY->i, UXY->p, UXYb, Gbja, Gbia, &info);
 
+		UG = cs_multiply(UXY, G);
+
+		for (i=0; i<N; i++) {
+
+		}
+}
+
+*/
 /*
 void init_cholmod(int N, int nnz, void **Ax, void **Ai, void **Ap, void **Bx, void **Bi, void **Bp)
 {
