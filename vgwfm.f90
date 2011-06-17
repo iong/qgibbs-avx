@@ -4,7 +4,7 @@ module vgwfm
     private
     public :: vgwfminit, vgw0fm,vgwfmcleanup, classical_Utot
     
-    integer :: Natom, Nmax
+    integer :: Natom, Nmax, nlg
     real*8 :: BL, rfullmatsq = 36d0
     real*8, dimension(10) :: LJA, LJC
     integer :: NGAUSS

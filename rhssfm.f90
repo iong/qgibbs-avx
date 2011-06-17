@@ -11,6 +11,14 @@ SUBROUTINE RHSSFM(NEQ, T, Y, YP)
             Zq(3), Z(3,3),Q12(3), v0
     real*8 :: UXY0(3,3), UX0(3)
 
+    if (y(3*Natom+1) == 0d0) then
+        call rhss_zero_time(NEQ, y, yp)
+        return
+    end if
+
+    call unpack_y(y, Q, G, gama)
+
+!    do I1=1,Natom-1
 	call unpack_y(y, Q, G, gama) 
 
     U = 0; UX = 0; UXY = 0;
@@ -100,8 +108,44 @@ SUBROUTINE RHSSFM(NEQ, T, Y, YP)
     gamap = -(0.25d0 * sum(UXY*G) + U)/real(Natom)
 
 	call pack_y(QP, GP, gamap, yp)
-
-    !Q = Q + DT * QP
-    !G = G + DT * GP
-    !gama = gama + DT * gamap
 END SUBROUTINE RHSSFM
+
+subroutine rhss_zero_time(NEQ, y, yp)
+    integer, intent(in) :: NEQ
+    double precision, intent(in) :: y(:)
+    double precision, intent(out) :: yp(:)
+
+    double precision :: qij(3), qi(3), qj(3), rsq
+    integer :: i, j, k
+
+    yp = 0d0
+
+    j = 3*Natom + 1
+    do i=1,3*Natom
+        yp(j) = invmass
+        j = j + 3*Natom - i + 1
+    end do
+
+    if (NEQ > 3*Natom + nlg + 1) then
+        j = 3*Natom + nlg
+        do i=1,Natom
+            yp(j + 9*(i - 1) + 1) = 1d0
+            yp(j + 9*(i - 1) + 5) = 1d0
+            yp(j + 9*i          ) = 1d0
+        end do
+    end if
+
+    U=0d0
+
+    DO I=1,Natom-1
+        qi = y(3*I-2:3*I)
+        DO J=I+1,Natom
+                qj = y(3*J-2 : 3*J)
+                qij = qi - qj
+                rsq = sum(min_image(qij, BL)**2)
+                U = U + sum(LJC(1:NGAUSS)*EXP(-LJA(1:NGAUSS)*rsq))
+        ENDDO
+    ENDDO
+
+    yp(NEQ) = -U/real(Natom)
+end subroutine
