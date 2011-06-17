@@ -15,8 +15,8 @@ else
 endif
 
 
-OPTFLAGS:=-O3 -fopenmp
-DBGFLAGS:=-O0 -ggdb -Wall -fopenmp
+OPTFLAGS:=-O3
+DBGFLAGS:=-O0 -ggdb -Wall
 
 CFLAGS:=
 FFLAGS:=-ffree-line-length-0 -ffixed-line-length-0 -fimplicit-none
