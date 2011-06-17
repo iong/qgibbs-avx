@@ -112,7 +112,7 @@ SUBROUTINE RHSS0(NEQ, T, Y, YP)
         end if
     end do
 
-    yp(NEQ) = -0.25d0*TRUXXG - U
+    yp(NEQ) = -(0.25d0*TRUXXG + U)/real(Natom)
 END SUBROUTINE RHSS0
 
 function matmul_sgs(A, B) result (C)
