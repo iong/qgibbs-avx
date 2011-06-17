@@ -4,24 +4,24 @@ SUBROUTINE RHSSspFM(NEQ, T, Y, YP)!, RPAR, IPAR)
     integer, intent(in) :: NEQ!, IPAR(:)
     double precision, intent(in) :: T, Y(NEQ)!, RPAR(:)
     double precision, intent(out) :: YP(NEQ)
-    INTEGER :: J,I1,I2,IG, J2, Gb_ptr, info, nGbcols, ptrb(2), ptre(2), k, I2_3
+    INTEGER :: J,I1,I2,IG, J2, Gb_ptr, info, nGbcols, ptrb(Natom+1), ptre(Natom+1), k, I2_3
     double precision :: AG(3,3), DETA,DETAG,QZQ,U12, G12(3,3),A(3,3), &
-            Zq(3), Z(3,3),Q12(3), UXY0(3,3), UX0(3)
-    double precision, pointer :: GUT_slab(:,:)
+            Zq(3), Z(3,3),Q12(3), UXY0(3,3), UX0(3), TrUXYG
+    double precision, pointer :: UG_slab(:,:)
 
     integer :: job(6) = (/ 1, 1, 1, 0, 0, 1 /)
     character(6) :: matdescra='GxxFxx'
 
     ! first call, G=0
     if (y(3*Natom+1)==0d0) then
-        call rhss_zero_time(y, yp)
+        call rhss_zero_time(NEQ, y, yp)
         return
     end if
 
     call unpack_y(y, Q, Gb(:,:,1:nnzb), gama)
  
 
-    U = 0; UX = 0; UXY = 0;  UXYdiag=0
+    U = 0; UX = 0; UXY = 0;  UXYdiag=0; UXYf=0
 
     Gbdiag = Gb(:,:, FMdiag)
 
@@ -85,33 +85,53 @@ SUBROUTINE RHSSspFM(NEQ, T, Y, YP)!, RPAR, IPAR)
             UXYdiag(:,:, I1) = UXYdiag(:,:, I1) + UXY0
             UXYdiag(:,:, I2) = UXYdiag(:,:, I2) + UXY0
             
+            UXYf(3*I1-2 : 3*I1, 3*I2-2 : 3*I2) = -UXY0
+            UXYf(3*I2-2 : 3*I2, 3*I1-2 : 3*I1) = -transpose(UXY0)
+
             if (Gbja(Gb_ptr) == I2) then
-                UXY(:,:,Gb_ptr) = -UXY0
+!                UXY(:,:,Gb_ptr) = -UXY0
                 Gb_ptr = Gb_ptr + 1
             end if
             
         end do ! I2
     end do ! I1
 
-    UXY(:,:,FMDIAG) = UXYdiag
-    call bsr_copy_up_lo(Gbia, Gbja, UXY)
+    do I1=1,Natom
+        UXYf(3*I1-2 : 3*I1, 3*I1-2 : 3*I1) = UXYdiag(:,:,I1)
+    end do
 
-    call mkl_dcsrbsr(job, Natom, 3, 9, Gcsr, Grja, Gria, Gb, Gbja, Gbia, info)
-    call mkl_dcsrbsr(job, Natom, 3, 9, UXYr, Grja, Gria, UXY, Gbja, Gbia, info)
+
+!    UXY(:,:,FMDIAG) = UXYdiag
+!    call bsr_copy_up_lo(Gbia, Gbja, UXY)
+
+
+
+
+    !call mkl_dcsrbsr(job, Natom, 3, 9, Gcsr, Grja, Gria, Gb, Gbja, Gbia, info)
+    !call mkl_dcsrbsr(job, Natom, 3, 9, UXYr, Grja, Gria, UXY, Gbja, Gbia, info)
 
     ! dG/dt = - G U G = -GU G = (G^T GU^T)^T = (G^T UG)^T
-    call mkl_dcsrmultd('N', 3*Natom, 3*Natom, 3*Natom, UXYr, Grja, Gria, Gcsr, &
-        Grja, Gria, GUT, 3*Natom)
+    !call mkl_dcsrmultd('N', 3*Natom, 3*Natom, 3*Natom, UXYr, Grja, Gria, Gcsr, &
+    !    Grja, Gria, UG, 3*Natom)
+
+
+
+    ptrb(1:Natom) = Gbia(1:Natom)
+    ptre(1:Natom) = Gbia(2:Natom+1)
+    call mkl_dbsrmm('N', Natom, 3*Natom, Natom, 3, 1d0, matdescra, Gb, Gbja, &
+        ptrb, ptre, UXYf, 3*Natom, 0d0, GU, 3*Natom)
+
+    UG = transpose(GU)
 
     do I1=1,Natom
         ptrb(1) = 1
         ptre(1) = Gbia(I1+1) - Gbia(I1) + 1
         do J2=fmdiag(I1),Gbia(I1+1)-1
             I2_3=3*Gbja(J2) - 2
-            GUT_slab => GUT(:, I2_3 : I2_3 + 2)
+            UG_slab => UG(:, I2_3 : I2_3 + 2)
             call mkl_dbsrmm('N', 1, 3, Natom, 3, -1d0, matdescra, &
                 Gb(:,:,Gbia(I1):Gbia(I1+1)-1), Gbja(Gbia(I1):Gbia(I1+1)-1), &
-                ptrb, ptre, GUT_slab, 3*Natom, 0d0, &
+                ptrb, ptre, UG_slab, 3*Natom, 0d0, &
                 GPb(:,:,J2), 3)
         end do
         
@@ -122,21 +142,51 @@ SUBROUTINE RHSSspFM(NEQ, T, Y, YP)!, RPAR, IPAR)
     end do
     call bsr_copy_up_lo(Gbia, Gbja, GPb)
 
+    TrUXYG = 0d0
+    do I1=1,3*Natom
+        TrUXYG = TrUXYG + UG(I1,I1)
+    end do
+
+!    call bsrdense(Gb, Gbia, Gbja, GU)
+!    call dgemm('N', 'N', 3*Natom, 3*Natom, 3*Natom, 1d0, UXYf, 3*Natom, &
+!        GU, 3*Natom, 0d0, UG, 3*Natom)
+!    call dgemm('N', 'N', 3*Natom, 3*Natom, 3*Natom, -1d0, GU, 3*Natom, &
+!        UG, 3*Natom, 0d0, UXYf, 3*Natom)
+!    do I1=1,3*Natom
+!        UXYf(I1,I1) = UXYf(I1,I1) + invmass
+!    end do
+!
+!    do I1=1,Natom-1
+!        DO I2=I1+1,Natom
+!            Q12 = Q(:,I1) - Q(:,I2)
+!            Q12 = min_image(Q12, bl)
+!            if (sum(q12**2) > rfullmatsq) then
+!                UXYf(3*I1-2 : 3*I1, 3*I2-2 : 3*I2) = 0
+!                UXYf(3*I2-2 : 3*I2, 3*I1-2 : 3*I1) = 0
+!           end if
+!        end do
+!    end do
+!
+!    call bsrdense(GPb, Gbia, Gbja, GU)
+!
+!    if (sum(abs(GU-UXYf)) > 1d-5) then
+!        write (*,*) 'bs'
+!    else if (abs( sum(UXY(:,:,1:nnzb) * Gb(:,:,1:nnzb)) -TrUXYG ) > 1d-5) then
+!        write (*,*) 'bs squared'
+!    end if
+
     call mkl_dbsrgemv('N', Natom, 3, Gb, Gbia, Gbja, UX, QP)
     QP = -1d0*QP
 
 
-    gamap = -(0.25d0 * sum(UXY(:,:,1:nnzb) * Gb(:,:,1:nnzb)) + U)/real(Natom)
+    !gamap = -(0.25d0 * sum(UXY(:,:,1:nnzb) * Gb(:,:,1:nnzb)) + U)/real(Natom)
+    gamap = -(0.25d0 * TrUXYG + U)/real(Natom)
 
     call pack_y(QP, GPb(:,:,1:nnzb), gamap, yp)
-
-!    Q = Q + DT * QP
-!    Gb(:,:,1:nnzb) = Gb(:,:,1:nnzb) + DT * GPb(:,:,1:nnzb)
-!    gama = gama + DT * gamap
 end subroutine RHSSspFM
 
-
-subroutine rhss_zero_time(y, yp)
+subroutine rhss_zero_time(NEQ, y, yp)
+    integer, intent(in) :: NEQ
     double precision, intent(in) :: y(:)
     double precision, intent(out) :: yp(:)
 
@@ -207,15 +257,15 @@ subroutine bsr_copy_lo_up(p, i, x, d)
    end do
 end subroutine
 
-subroutine bsr_chop(ia, slices, pntrb, pntre)
+subroutine bsr_chop(ia, slices, ptrb, ptre)
     integer, intent(in) :: ia(:), slices(:)
-    integer, intent(out) :: pntrb(:), pntre(:)
+    integer, intent(out) :: ptrb(:), ptre(:)
 
     integer :: k
 
     do k=1,size(slices)
-        pntrb(k) = ia(slices(k))
-        pntre(k) = ia(slices(k)+1)
+        ptrb(k) = ia(slices(k))
+        ptre(k) = ia(slices(k)+1)
     end do
 end subroutine
 

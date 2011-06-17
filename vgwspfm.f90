@@ -17,10 +17,10 @@ module vgwspfm
 
     real*8 :: T, gama, gamap, U
     real*8, allocatable :: Q(:,:), Gcsr(:), Gbdiag(:,:,:), &
-            UXY(:,:,:), UXYdiag(:,:,:), UXYr(:), &
-            UX(:,:), GPb(:,:,:),  QP(:,:)
+            UXY(:,:,:), UXYdiag(:,:,:), UXYr(:), UXYf(:,:),&
+            UX(:,:), GPb(:,:,:),  QP(:,:), GU(:,:)
 
-    real*8, allocatable, target :: GUT(:,:)
+    real*8, allocatable, target :: UG(:,:)
 
     real*8 :: invmass, RC, TAUMIN, mass, dt0, dtmax, dtmin, vgw_atol(3)
     logical :: finished
@@ -58,7 +58,8 @@ subroutine vgwspfminit(Np, species, M, rcutoff, massx)
         Gria(3*Natom+1), Grja(Natom), fmdiag(Natom), &
         Q(3,Natom), Gb(3,3,4), Gbdiag(3,3,Natom), Gcsr(4), &
         UXY(3,3,4), UXYdiag(3,3,Natom), UXYr(4), &
-        UX(3,Natom), QP(3,Natom), GPb(3,3,4), GUT(3*Natom,3*Natom))
+        UX(3,Natom), QP(3,Natom), GPb(3,3,4), UXYf(3*Natom,3*Natom), &
+        GU(3*Natom,3*Natom),UG(3*Natom,3*Natom))
     
     
     include 'species.f90'
@@ -70,7 +71,7 @@ subroutine vgwspfmcleanup()
         Gria, Grja, fmdiag, &
         Q, Gb, Gbdiag, Gcsr, &
         UXY, UXYdiag, UXYr, &
-        UX, QP, GPb, GUT)
+        UX, QP, GPb, UXYf, GU, UG)
 end subroutine
 
 subroutine unpack_y(y, Q, Gb, gama)

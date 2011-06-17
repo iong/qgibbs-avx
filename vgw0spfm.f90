@@ -1,11 +1,9 @@
-SUBROUTINE vgw0spfm(Q0, BL_, TAUMAX, W)
+SUBROUTINE vgw0spfm(Q0, BL_, TAUMAX, Havg)
     IMPLICIT NONE
     double precision, intent(in) :: Q0(:,:), TAUMAX, BL_
-    double precision, intent(out) :: W
-    double precision :: logdetg
-    double precision :: DT, next_stop
-    integer :: j, I1, I2, J2, info, s
-    logical :: mm = .FALSE.
+    double precision, intent(out) :: Havg
+    real*8 :: LOGDET, logrho(2), dbeta, TSTOP, TrG
+    integer :: i, j, info, s
 
     double precision, allocatable :: Y(:), RWORK(:), YP(:), ATOL(:)
     integer, allocatable :: IWORK(:)
@@ -13,6 +11,7 @@ SUBROUTINE vgw0spfm(Q0, BL_, TAUMAX, W)
     integer :: NEQ, IPAR(10), ITOL, ITASK, IOPT, MF, ISTATE, LRW, LIW
     double precision :: RPAR(10), RTOL
 
+    Natom = size(Q0, 2)
     BL = BL_
 
     call interaction_lists(Q0)
@@ -42,7 +41,7 @@ SUBROUTINE vgw0spfm(Q0, BL_, TAUMAX, W)
     RTOL=0
     ATOL(1:3*Natom) = vgw_atol(1)
     ATOL(3*Natom+1:3*Natom+9*nnzb)=vgw_atol(2)
-    ATOL(3*Natom+9*nnzb+1) = vgw_atol(3)
+    ATOL(NEQ) = vgw_atol(3)
     ITASK=1
     ISTATE=1
     IOPT = 1
@@ -58,24 +57,27 @@ SUBROUTINE vgw0spfm(Q0, BL_, TAUMAX, W)
     T=0
     y=0d0
     y(1:3*Natom) = reshape(Q0, (/ 3*Natom /) )
+    dbeta = 0.1*TAUMAX
 
-    !CALL DVODE(RHSSspFM,NEQ,Y,T,0.5*TAUMAX,ITOL,RTOL,ATOL,ITASK,ISTATE,IOPT,&
-    !    RWORK,LRW,IWORK,LIW,JAC,MF,RPAR,IPAR)
-    CALL DLSODE(RHSSspFM,NEQ,Y,T,0.5*TAUMAX,ITOL,RTOL,ATOL(1),ITASK,ISTATE,IOPT,&
+    do i=1,2
+        TSTOP = 0.5d0*(TAUMAX - (2-i)*dbeta)
+        CALL DLSODE(RHSSspFM,NEQ,Y,T,TSTOP,ITOL,RTOL,ATOL,ITASK,ISTATE,IOPT,&
         RWORK,LRW,IWORK,LIW,JAC,MF)
 
-    write (*,*) IWORK(11), 'steps,', IWORK(12), ' RHSS calls, last_dt =', RWORK(12)
+    	call unpack_y(y, Q, Gb(:,:,1:nnzb), gama)
+    	gama = gama * real(Natom)
 
-    call unpack_y(y, Q, Gb(:,:,1:nnzb), gama)
+    	logdet = cholmod_logdet(C_LOC(Gb), C_LOC(Gbia), C_LOC(Gbja), Natom)
 
-    deallocate(y, yp, RWORK, IWORK, ATOL)
+		logrho(i) = 2.0*gama - 0.5*logdet - 1.5*Natom*log(4.0*M_PI)
+	end do
 
-    gama = gama * Natom
+	write (*,*) IWORK(11), 'steps,', IWORK(12), ' RHSS calls, logdet =', logdet
 
-    logdetg = cholmod_logdet(C_LOC(Gb), C_LOC(Gbia), C_LOC(Gbja), Natom)
+	deallocate(y, yp, RWORK, IWORK, ATOL)
 
-    W=-(1/TAUMAX)*(2.0*gama - 0.5*logdetg - 1.5*Natom*log(4.0*M_PI))
-    !write (*,*) gama
+    !W=-(1/TAUMAX)*logrho(2)
+    Havg = -(logrho(2) - logrho(1)) / dbeta
 END SUBROUTINE
 
 
