@@ -8,7 +8,7 @@ else ifeq ($(CPU),intel)
     OPTFLAGS:=-ipo -O3 -no-prec-div -xSSE4.2
 # Host
 else
-    OPTFLAGS:=-ipo -O3 -xHost #-O2 -g
+    OPTFLAGS:=-ipo -O3 -xHost
 endif
 OPTFLAGS += -heap-arrays
 DBGFLAGS:=-O0 -g 
@@ -17,5 +17,5 @@ FFLAGS:=
 LDFLAGS += -L/opt/hpc//intel-2011/lib
 CPPFLAGS += -I/opt/hpc//intel-2011/include
 
-LAPACK := -mkl=parallel
+LAPACK := -mkl=sequential
 LIBS += -lcholmod -lamd -lcamd -lcolamd -lccolamd
