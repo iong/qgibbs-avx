@@ -1,10 +1,9 @@
 SUBROUTINE RHSSspFM(NEQ, T, Y, YP)!, RPAR, IPAR)
-!    use omp_lib
     IMPLICIT NONE
     integer, intent(in) :: NEQ!, IPAR(:)
     double precision, intent(in) :: T, Y(NEQ)!, RPAR(:)
     double precision, intent(out) :: YP(NEQ)
-    INTEGER :: J,I1,I2,IG, J2, Gb_ptr, info, nGbcols, ptrb(Natom+1), ptre(Natom+1), k, I2_3
+    INTEGER :: J,I1,I2,IG, J2, Gb_ptr, ptrb(Natom+1), ptre(Natom+1), k, I2_3
     double precision :: AG(3,3), DETA,DETAG,QZQ,U12, G12(3,3),A(3,3), &
             Zq(3), Z(3,3),Q12(3), UXY0(3,3), UX0(3), TrUXYG
     double precision, pointer :: UG_slab(:,:)

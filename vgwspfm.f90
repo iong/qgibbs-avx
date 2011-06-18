@@ -22,7 +22,7 @@ module vgwspfm
 
     real*8, allocatable, target :: UG(:,:)
 
-    real*8 :: invmass, RC, TAUMIN, mass, dt0, dtmax, dtmin, vgw_atol(3)
+    real*8 :: invmass, RC, mass, dt0, dtmax, dtmin, vgw_atol(3)
     logical :: finished
     integer :: nnbmax
 

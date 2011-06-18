@@ -131,7 +131,7 @@ subroutine rhss_zero_time(NEQ, y, yp)
     double precision, intent(out) :: yp(:)
 
     double precision :: qij(3), qi(3), qj(3), rsq
-    integer :: i, j, k
+    integer :: i, j
 
     yp = 0d0
 

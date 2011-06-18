@@ -8,7 +8,7 @@ SUBROUTINE RHSSFM(NEQ, T, Y, YP)
     REAL*8 AG(3,3), &
             DETA,DETAG,QZQ,U12, &
             G12(3,3),A(3,3), &
-            Zq(3), Z(3,3),Q12(3), v0
+            Zq(3), Z(3,3),Q12(3)
     real*8 :: UXY0(3,3), UX0(3)
 
     if (y(3*Natom+1) == 0d0) then
@@ -116,7 +116,7 @@ subroutine rhss_zero_time(NEQ, y, yp)
     double precision, intent(out) :: yp(:)
 
     double precision :: qij(3), qi(3), qj(3), rsq
-    integer :: i, j, k
+    integer :: i, j
 
     yp = 0d0
 

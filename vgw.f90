@@ -16,7 +16,7 @@ module vgw
                             
     real*8, allocatable :: UPV(:,:), UPM(:,:,:)
     
-    real*8 :: invmass, RC, TAUMIN, mass, dt0, dtmax, dtmin, vgw_atol(3)
+    real*8 :: invmass, RC, mass, dt0, dtmax, dtmin, vgw_atol(3)
     logical :: finished
     integer :: tid=0, nthr=1, thread_start, thread_stop, nnbmax
 !$OMP THREADPRIVATE(tid, thread_start, thread_stop, nnbmax)

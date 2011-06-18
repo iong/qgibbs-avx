@@ -1,15 +1,16 @@
-SUBROUTINE vgw0spfm(Q0, BL_, TAUMAX, Havg)
+SUBROUTINE vgw0spfm(Q0, BL_, TAUMAX, Havg, rt)
     IMPLICIT NONE
     double precision, intent(in) :: Q0(:,:), TAUMAX, BL_
     double precision, intent(out) :: Havg
-    real*8 :: LOGDET, logrho(2), dbeta, TSTOP, TrG
-    integer :: i, j, info, s
+    double precision, intent(out), optional :: rt
+    real*8 :: LOGDET, logrho(2), dbeta, TSTOP, start_time, stop_time
+    integer :: i, ncalls
 
     double precision, allocatable :: Y(:), RWORK(:), YP(:), ATOL(:)
     integer, allocatable :: IWORK(:)
 
-    integer :: NEQ, IPAR(10), ITOL, ITASK, IOPT, MF, ISTATE, LRW, LIW
-    double precision :: RPAR(10), RTOL
+    integer :: NEQ, ITOL, ITASK, IOPT, MF, ISTATE, LRW, LIW
+    double precision ::  RTOL
 
     Natom = size(Q0, 2)
     BL = BL_
@@ -59,6 +60,7 @@ SUBROUTINE vgw0spfm(Q0, BL_, TAUMAX, Havg)
     y(1:3*Natom) = reshape(Q0, (/ 3*Natom /) )
     dbeta = 0.1*TAUMAX
 
+    call cpu_time(start_time)
     do i=1,2
         TSTOP = 0.5d0*(TAUMAX - (2-i)*dbeta)
         CALL DLSODE(RHSSspFM,NEQ,Y,T,TSTOP,ITOL,RTOL,ATOL,ITASK,ISTATE,IOPT,&
@@ -71,13 +73,16 @@ SUBROUTINE vgw0spfm(Q0, BL_, TAUMAX, Havg)
 
 		logrho(i) = 2.0*gama - 0.5*logdet - 1.5*Natom*log(4.0*M_PI)
 	end do
-
+	call cpu_time(stop_time)
+    ncalls = IWORK(12)
 	write (*,*) IWORK(11), 'steps,', IWORK(12), ' RHSS calls, logdet =', logdet
 
 	deallocate(y, yp, RWORK, IWORK, ATOL)
 
-    !W=-(1/TAUMAX)*logrho(2)
     Havg = -(logrho(2) - logrho(1)) / dbeta
+    if (present(rt)) then
+        rt = (stop_time - start_time) / real(ncalls)
+     end if
 END SUBROUTINE
 
 

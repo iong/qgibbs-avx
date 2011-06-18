@@ -11,7 +11,6 @@
                     -19.5534697800036d0 /)
         mass = 2.0*0.020614788876D0
         rc = 8.0
-        taumin = 1d-4
         dt0=5d-4
         dtmax = 2d-3
         dtmin = 1d-5
@@ -22,7 +21,6 @@
         LJC(1:3) = (/ 1840d0, -1.48d0, -23.2d0 /)
         mass = 1.0
         rc = 2.5
-        taumin=1d-4
         rfullmatsq = 1.5d0**2
         vgw_atol = (/ 1d-4, 1d-06, .1d0 /)
         !dtmax = 1d0

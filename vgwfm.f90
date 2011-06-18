@@ -13,7 +13,7 @@ module vgwfm
     real*8, allocatable :: Q(:), G(:,:), QP(:), GP(:,:), GU(:,:)
     real*8, allocatable :: UX(:), UXY(:,:)
     
-    real*8 :: invmass, RC, TAUMIN, mass, dt0, dtmax, dtmin, vgw_atol(3)
+    real*8 :: invmass, RC, mass, dt0, dtmax, dtmin, vgw_atol(3)
     logical :: finished
     
 contains
