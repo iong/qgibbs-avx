@@ -1,10 +1,11 @@
-SUBROUTINE vgw0spfm(Q0, BL_, TAUMAX, Havg, rt)
+SUBROUTINE vgw0spfm(Q0, BL_, TAUMAX, Havg, rt, logfd)
     IMPLICIT NONE
     double precision, intent(in) :: Q0(:,:), TAUMAX, BL_
     double precision, intent(out) :: Havg
     double precision, intent(out), optional :: rt
-    real*8 :: LOGDET, logrho(2), dbeta, TSTOP, start_time, stop_time
-    integer :: i, ncalls
+    integer, intent(in), optional :: logfd
+    real*8 :: LOGDET, logrho(2), dbeta, TSTOP, start_time, stop_time, T
+    integer :: i, ncalls, nsteps
 
     double precision, allocatable :: Y(:), RWORK(:), YP(:), ATOL(:)
     integer, allocatable :: IWORK(:)
@@ -21,9 +22,9 @@ SUBROUTINE vgw0spfm(Q0, BL_, TAUMAX, Havg, rt)
 
     if (size(Gb, 3) < nnzbmax) then
 
-        deallocate(Gb, Gcsr, UXY, UXYr, Gbja, Grja, GPb)
+        deallocate(Gb, Gcsr, GPcsr, UXY, UXYr, Gbja, Grja, GPb)
 
-        allocate(Gb(3,3,nnzbmax), Gcsr(9*nnzbmax), UXY(3,3,nnzbmax), &
+        allocate(Gb(3,3,nnzbmax), Gcsr(9*nnzbmax), GPcsr(9*nnzbmax), UXY(3,3,nnzbmax), &
             UXYr(9*nnzbmax), Gbja(nnzbmax), Grja(9*nnzbmax), &
             GPb(3,3,nnzbmax))
 
@@ -55,31 +56,42 @@ SUBROUTINE vgw0spfm(Q0, BL_, TAUMAX, Havg, rt)
     RWORK(6)=dtmax
     RWORK(7)=dtmin
 
-    T=0
     y=0d0
     y(1:3*Natom) = reshape(Q0, (/ 3*Natom /) )
-    dbeta = 0.1*TAUMAX
+    dbeta = min(0.1*0.5*TAUMAX, 1d0)
+    nsteps = ceiling(0.5*TAUMAX/dbeta) 
+    dbeta = 0.5*TAUMAX/real(nsteps)
 
     call cpu_time(start_time)
-    do i=1,2
-        TSTOP = 0.5d0*(TAUMAX - (2-i)*dbeta)
+
+    T=0
+    logrho=0
+    do i=1,nsteps
+        logrho(1) = logrho(2)
+
+        TSTOP = T  + dbeta
         CALL DLSODE(RHSSspFM,NEQ,Y,T,TSTOP,ITOL,RTOL,ATOL,ITASK,ISTATE,IOPT,&
-        RWORK,LRW,IWORK,LIW,JAC,MF)
+            RWORK,LRW,IWORK,LIW,JAC,MF)
 
-    	call unpack_y(y, Q, Gb(:,:,1:nnzb), gama)
-    	gama = gama * real(Natom)
+        call unpack_y(y, Q, Gb(:,:,1:nnzb), gama)
+        gama = gama * real(Natom)
 
-    	logdet = cholmod_logdet(C_LOC(Gb), C_LOC(Gbia), C_LOC(Gbja), Natom)
+        logdet = cholmod_logdet(C_LOC(Gb), C_LOC(Gbia), C_LOC(Gbja), Natom)
 
-		logrho(i) = 2.0*gama - 0.5*logdet - 1.5*Natom*log(4.0*M_PI)
-	end do
-	call cpu_time(stop_time)
+        logrho(2) = 2.0*gama - 0.5*logdet - 1.5*Natom*log(4.0*M_PI)
+
+        Havg = -(logrho(2) - logrho(1)) *0.5d0/ dbeta
+        if (present(logfd)) then
+            write (logfd,*) 2.0*T, Havg
+        end if
+    end do
+
+    call cpu_time(stop_time)
     ncalls = IWORK(12)
-	write (*,*) IWORK(11), 'steps,', IWORK(12), ' RHSS calls, logdet =', logdet
+    write (*,*) IWORK(11), 'steps,', IWORK(12), ' RHSS calls, logdet =', logdet
 
-	deallocate(y, yp, RWORK, IWORK, ATOL)
+    deallocate(y, yp, RWORK, IWORK, ATOL)
 
-    Havg = -(logrho(2) - logrho(1)) / dbeta
     if (present(rt)) then
         rt = (stop_time - start_time) / real(ncalls)
      end if

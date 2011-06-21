@@ -5,7 +5,7 @@ module vgwspfm
     private
     public :: vgwspfminit, vgw0spfm,vgwspfmcleanup
     
-    integer :: Natom, Nmax, nnzbmax, nnzb
+    integer :: Natom, Nmax, nnzbmax, nnzb, nrows, n3rows16
     real*8 :: BL, rfullmatsq = 5.5d0**2
     real*8, dimension(10) :: LJA, LJC
     integer :: NGAUSS
@@ -15,12 +15,12 @@ module vgwspfm
     integer(C_INT), allocatable, target :: Gbia(:), Gbja(:)
     real(C_DOUBLE), allocatable, target :: Gb(:,:,:)
 
-    real*8 :: T, gama, gamap, U
-    real*8, allocatable :: Q(:,:), Gcsr(:), Gbdiag(:,:,:), &
-            UXY(:,:,:), UXYdiag(:,:,:), UXYr(:), UXYf(:,:),&
-            UX(:,:), GPb(:,:,:),  QP(:,:), GU(:,:)
+    real*8 :: gama, gamap, U
+    real*8, allocatable :: Q(:,:), Gcsr(:), GPcsr(:), Gbdiag(:,:,:), &
+            UXY(:,:,:), UXYdiag(:,:,:), UXYr(:),&
+            UX(:,:), GPb(:,:,:),  QP(:,:)
 
-    real*8, allocatable, target :: UG(:,:)
+    real*8, allocatable, target :: UG(:,:), GU(:,:), UXYf(:,:)
 
     real*8 :: invmass, RC, mass, dt0, dtmax, dtmin, vgw_atol(3)
     logical :: finished
@@ -54,12 +54,14 @@ subroutine vgwspfminit(Np, species, M, rcutoff, massx)
     real*8, intent(in), optional :: M, rcutoff, massx
 
     Natom = Np
+    n3rows16 = ((3*Natom*8)/16)*16/8
+    write (*,*) n3rows16
     allocate(NNB(Natom), NBIDX(Natom,Natom), Gbia(Natom+1), Gbja(Natom), &
         Gria(3*Natom+1), Grja(Natom), fmdiag(Natom), &
-        Q(3,Natom), Gb(3,3,4), Gbdiag(3,3,Natom), Gcsr(4), &
+        Q(3,Natom), Gb(3,3,4), Gbdiag(3,3,Natom), Gcsr(4), GPcsr(4), &
         UXY(3,3,4), UXYdiag(3,3,Natom), UXYr(4), &
-        UX(3,Natom), QP(3,Natom), GPb(3,3,4), UXYf(3*Natom,3*Natom), &
-        GU(3*Natom,3*Natom),UG(3*Natom,3*Natom))
+        UX(3,Natom), QP(3,Natom), GPb(3,3,4), UXYf(n3rows16,3*Natom), &
+        GU(n3rows16,3*Natom),UG(n3rows16,3*Natom))
     
     
     include 'species.f90'
@@ -69,7 +71,7 @@ end subroutine
 subroutine vgwspfmcleanup()
     deallocate(NNB, NBIDX, Gbia, Gbja, &
         Gria, Grja, fmdiag, &
-        Q, Gb, Gbdiag, Gcsr, &
+        Q, Gb, Gbdiag, Gcsr, GPcsr, &
         UXY, UXYdiag, UXYr, &
         UX, QP, GPb, UXYf, GU, UG)
 end subroutine
