@@ -18,13 +18,11 @@ SUBROUTINE vgw0spfm(Q0, BL_, TAUMAX, Havg, rt, logfd)
 
     call interaction_lists(Q0)
 
-    nnzmax = 9*(2*sum(nnb) + Natom)
-
-    if (size(Gja) < nnzmax) then
+    if (size(Gja) < nnz) then
 
         deallocate(Gb, Gbja, Gja)
 
-        allocate(Gb(3,3,nnzmax/9), Gbja(nnzmax/9), Gja(nnzmax))
+        allocate(Gb(3,3,nnz/9), Gbja(nnz/9), Gja(nnz))
     end if
 
     call init_sparse_pattern(Q0)
@@ -107,6 +105,7 @@ subroutine interaction_lists(Q)
 
 
     NNB = 0
+    nnz = 0
 !$OMP DO SCHEDULE(DYNAMIC) PRIVATE(I, J, QIJ, RSQ)
     do I=1,N-1
         NN = 0
@@ -117,11 +116,15 @@ subroutine interaction_lists(Q)
                 NN = NN + 1
                 NBIDX(NN, I) = J
             endif
+            if (rsq <= rfullmatsq) then
+                nnz = nnz + 1
+            end if
         enddo
         NNB(i) = NN
     enddo
 !$OMP END DO
     nnbmax = maxval(nnb)
+    nnz = 9*(2*nnz + Natom)
 end subroutine interaction_lists
 
 
@@ -166,7 +169,10 @@ subroutine init_sparse_pattern(Q0)
         Giia(i+2) = Giia(i+1) + nz + 1
     enddo
     Gia(3*Natom + 1) = p
-    nnz = p - 1
+    if (nnz /= p - 1) then
+        write (*,*) 'nnz error!', nnz, p-1
+        stop
+    end if
 end subroutine
 
 subroutine JAC()
@@ -215,7 +221,10 @@ end subroutine
 
 subroutine test_ia_ja(ia, ja)
     integer, intent(in) :: ia(:), ja(:)
-    integer :: P(size(ia)-1, size(ia)-1), i, ptr, N
+    integer,allocatable :: P(:,:)
+    integer :: i, ptr, N
+    
+    allocate(P(size(ia)-1, size(ia)-1))
 
     N = size(ia) - 1
 
@@ -230,4 +239,6 @@ subroutine test_ia_ja(ia, ja)
         write (*,*) 'The pattern is not symmetric!'
         stop
     end if
+
+    deallocate(P)
 end  subroutine

@@ -1,5 +1,4 @@
 SUBROUTINE RHSSspFM(NEQ, T, Y, YP)!, RPAR, IPAR)
-    use omp_lib
     IMPLICIT NONE
     integer, intent(in) :: NEQ!, IPAR(:)
     double precision, intent(in) :: T!, RPAR(:)
@@ -7,15 +6,12 @@ SUBROUTINE RHSSspFM(NEQ, T, Y, YP)!, RPAR, IPAR)
     double precision, intent(out), target :: YP(NEQ)
     INTEGER :: J,I1,I2,IG, J2, Gb_ptr, ptrb(3*Natom+1), ptre(3*Natom+1), p
     double precision :: AG(3,3), DETA,DETAG,QZQ,U12, G12(3,3),A(3,3), &
-            Zq(3), Z(3,3),Q12(3), UXY0(3,3), UX0(3), TrUXYG, rmin,&
-            GF(3*Natom,3*Natom), GP(3*Natom, 3*Natom), dg
+            Zq(3), Z(3,3),Q12(3), UXY0(3,3), UX0(3), TrUXYG
 
     integer :: job(10), info
     character(6) :: matdescra='GxxFxx'
 
     double precision, pointer :: Gptr(:), GPptr(:)
-
-    write (*,*) T
 
     ! first call, G=0
     if (y(3*Natom+1)==0d0) then
@@ -27,14 +23,12 @@ SUBROUTINE RHSSspFM(NEQ, T, Y, YP)!, RPAR, IPAR)
     GPptr => yp(3*Natom+1 : 3*Natom + nnz)
 
     job(1:6) = (/ 0, 1, 1, 0, 0, 1 /)
-    Gb = 0d0
     call mkl_dcsrbsr(job, 3*Natom, 3, 9, Gptr, Gja, Gia, Gb, Gbja, Gbia, info)
     Gbdiag = Gb(:,:,Gbiia)
 
     U = 0; UX = 0; UXYdiag=0; UXYf=0
 
 
-    rmin = 1d4
     do I1=1,Natom-1
         Gb_ptr =  Gbiia(I1) + 1
         ! what if there is no other interaction on the right hand side?
@@ -48,8 +42,6 @@ SUBROUTINE RHSSspFM(NEQ, T, Y, YP)!, RPAR, IPAR)
             Q12 = y(3*I1-2 : 3*I1) - y(3*I2-2 : 3*I2)
             Q12 = min_image(Q12, bl)
 
-            rmin=min(rmin, sqrt(sum(q12**2)))
-            
             G12=Gbdiag(:,:, I1) + Gbdiag(:,:, I2)
             if ( Gbja(Gb_ptr) == I2) then
                 G12 = G12 - Gb(:,:,Gb_ptr)- transpose(Gb(:,:,Gb_ptr))
@@ -120,57 +112,13 @@ SUBROUTINE RHSSspFM(NEQ, T, Y, YP)!, RPAR, IPAR)
     call mkl_dcsrmm('N', 3*Natom, 3*Natom, 3*Natom, -1d0, matdescra, &
         Gptr, Gja, ptrb, ptre, UXYf, n3rows16, 0d0, GU, n3rows16)
 
-    call csr_dense(Gia, Gja, Gptr, GF)
-    !call dgemm('N', 'N', 3*Natom, 3*Natom, 3*Natom, -1d0, GF, 3*Natom, &
-    !    UXYf, n3rows16, 0d0, GP, 3*Natom)
-
-    !write (*,*) 'dgu =', sqrt(sum(GU(1:3*Natom,:) - GP)**2)
-
     TrUXYG = 0d0
     do I1=1,3*Natom
         TrUXYG = TrUXYG - GU(I1,I1)
     end do
 
-
-    !GU = matmul(G, UXY)
-    !GU(1:3*Natom,:) = GP
-
-    !GP = -matmul(GU, G)
-    write (*,*) 3*Natom, n3rows16
-    call dgemm('N', 'N', 3*Natom, 3*Natom, 3*Natom, +1d0, GU, n3rows16, &
-        GF, 3*Natom, 0d0, GP, 3*Natom)
-
-    !if (T>40.0) then
-    !    do I1=1,3*Natom
-    !        do p=Gia(I1),Gia(I1+1)-1
-    !            GPptr(p) = GP(I1,Gja(p))
-    !        end do
-    !    end do
-!
-!        call csr_dense(Gia, Gja, GPptr, GP)
-!        write (65,'(F30.25)') GP
-!    end if
-!
     call mmcsrsym(3*Natom, 3*Natom, 3*Natom, GU, Gptr, Gia, Gja, GPptr)
     call csr_symmetrize(Gia, Gja, GPptr)
-!    if (T>40.0) then
-!        call csr_dense(Gia, Gja, GPptr, GP)
-!        write (66,'(F30.25)') GP
-!        stop
-!    end if
-
-
-
-
-    dg = 0
-    do I1=1,3*Natom
-        do p=Gia(I1),Gia(I1+1)-1
-            dg = dg + (GPptr(p) - GP(I1,Gja(p)))**2
-            !write (*,*) GPptr(p) - GP(I1,Gja(p))
-            !GPptr(p) = GP(I1,Gja(p))
-        end do
-    end do
-    write (*,*) 'dg =', sqrt(dg)/sqrt(sum(GP**2))
 
     do I1=1,3*Natom
         GPptr(Giia(I1)) = GPptr(Giia(I1)) + invmass
