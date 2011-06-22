@@ -3,21 +3,15 @@
 #include <string.h>
 #include <math.h>
 
-#include <mkl_spblas.h>
-
 #include <cholmod.h>
 
-static cholmod_common c1;
-static cholmod_sparse *mA, *mB;
-
-
-double cholmod_logdet(double *Gb, int *Gbia, int *Gbja, int Natom)
+double cholmod_logdet(double *G, int *ia, int *ja, int N)
 {
     static cholmod_common c;
     static cholmod_sparse *A, *Ls;
     static cholmod_factor *L ;
     
-    int     i, N, nnz, nnzb, s;
+    int     i, nnz, s;
     int     *Ai, *Ap, *Lp;
     double    *Ax, *Lx;
 
@@ -39,14 +33,19 @@ double cholmod_logdet(double *Gb, int *Gbia, int *Gbja, int Natom)
 	c.method [0].ordering = CHOLMOD_NATURAL ;
 	c.postorder = 0 ;
 
-	N = 3*Natom;
-	nnzb = Gbia[Natom];
-	nnz = 9*nnzb;
+    nnz = ia[N] - 1;
     A = cholmod_allocate_sparse(N, N, nnz, 1, 1, -1, CHOLMOD_REAL, &c);
+    Ai = A->i;
+    Ap = A->p;
 
-	mblk = 3;
-	ldabsr = 9;
-	mkl_dcsrbsr(job, &Natom, &mblk, &ldabsr, A->x, A->i, A->p, Gb, Gbja, Gbia, &info);
+    memcpy(A->x, G, nnz*sizeof(double));
+    for (i=0; i<=N; i++) {
+	    Ap[i] = ia[i] - 1;
+    }
+
+    for (i=0; i<nnz; i++) {
+	    Ai[i] = ja[i] - 1;
+    }
 
     L = cholmod_analyze (A, &c) ;
     cholmod_factorize (A, L, &c) ;
@@ -69,7 +68,7 @@ double cholmod_logdet(double *Gb, int *Gbia, int *Gbja, int Natom)
     logDetA = 0.0;
 
     s = 1;
-    for (i=0; i<3*Natom; i++) {
+    for (i=0; i<N; i++) {
         if (Lx[Lp[i]] < 0.0) {
             s = -s;
         }
@@ -90,48 +89,3 @@ double cholmod_logdet(double *Gb, int *Gbia, int *Gbja, int Natom)
 
     return logDetA;
 }
-/*
-double G_UPM_G(double *Gb, double *UXYb, int *Gbia, int *Gbja, int Natom)
-{
-	N = 3*Natom;
-		nnzb = Gbia[Natom];
-		nnz = 9*nnzb;
-	    G = cs_spalloc(N, N, nnz, 1, 0);
-	    UXY = cs_spalloc(N, N, nnz, 1, 0);
-	    mblk = 3;
-		ldabsr = 9;
-		mkl_dcsrbsr(job, &Natom, &mblk, &ldabsr, G->x, G->i, G->p, Gb, Gbja, Gbia, &info);
-		mkl_dcsrbsr(job, &Natom, &mblk, &ldabsr, UXY->x, UXY->i, UXY->p, UXYb, Gbja, Gbia, &info);
-
-		UG = cs_multiply(UXY, G);
-
-		for (i=0; i<N; i++) {
-
-		}
-}
-
-*/
-/*
-void init_cholmod(int N, int nnz, void **Ax, void **Ai, void **Ap, void **Bx, void **Bi, void **Bp)
-{
-    cholmod_start (&mc);
-
-    mA = cholmod_allocate_sparse(N, N, nnz, 1, 1, -1, CHOLMOD_REAL, &mc);
-    mB = cholmod_allocate_sparse(N, N, nnz, 1, 1, -1, CHOLMOD_REAL, &mc);
-
-    *Ax = A->x;
-    *Ai = A->i;
-    *Ap = A->p;
-    *Bx = B->x;
-    *Bi = B->i;
-    *Bp = B->p;
-}
-
-void destroy_cholmod()
-{
-	cholmod_free_sparse(&mA, &mc);
-	cholmod_free_sparse(&mB, &mc);
-
-	cholmod_finish(&mc);
-}
-*/
