@@ -5,22 +5,21 @@ module vgwspfm
     private
     public :: vgwspfminit, vgw0spfm,vgwspfmcleanup
     
-    integer :: Natom, Nmax, nnzbmax, nnzb, nrows, n3rows16
+    integer :: Natom, Nmax, nnzmax, nnz, nrows, n3rows16
     real*8 :: BL, rfullmatsq = 5.5d0**2
     real*8, dimension(10) :: LJA, LJC
     integer :: NGAUSS
     integer, allocatable :: NBIDX(:,:), NNB(:),  &
-            Gria(:), Grja(:), fmdiag(:)
+            Gbia(:), Gbja(:), Giia(:), Gbiia(:)
     
-    integer(C_INT), allocatable, target :: Gbia(:), Gbja(:)
-    real(C_DOUBLE), allocatable, target :: Gb(:,:,:)
+    integer(C_INT), allocatable, target :: Gia(:), Gja(:)
+    real(C_DOUBLE), allocatable, target :: G(:)
 
     real*8 :: gama, gamap, U
-    real*8, allocatable :: Q(:,:), Gcsr(:), GPcsr(:), Gbdiag(:,:,:), &
-            UXY(:,:,:), UXYdiag(:,:,:), UXYr(:),&
-            UX(:,:), GPb(:,:,:),  QP(:,:)
+    real*8, allocatable :: Q(:,:), Gb(:,:,:), Gbdiag(:,:,:), &
+            UXYdiag(:,:,:), UX(:,:)
 
-    real*8, allocatable, target :: UG(:,:), GU(:,:), UXYf(:,:)
+    real*8, allocatable, target :: GU(:,:), UXYf(:,:)
 
     real*8 :: invmass, RC, mass, dt0, dtmax, dtmin, vgw_atol(3)
     logical :: finished
@@ -32,15 +31,6 @@ module vgwspfm
             type(C_PTR), value :: G, ia, ja
             integer(C_INT), value :: N
         end function
-
-        subroutine init_cholmod(N, nnz, x, i, p) BIND(C)
-            use, intrinsic :: iso_c_binding
-            integer, value :: N, nnz
-            type(c_ptr) :: x, i, p
-        end subroutine
-
-        subroutine destroy_cholmod() BIND(C)
-        end subroutine
     end interface
 
 
@@ -54,14 +44,14 @@ subroutine vgwspfminit(Np, species, M, rcutoff, massx)
     real*8, intent(in), optional :: M, rcutoff, massx
 
     Natom = Np
-    n3rows16 = ((3*Natom*8)/16)*16/8
-    write (*,*) n3rows16
-    allocate(NNB(Natom), NBIDX(Natom,Natom), Gbia(Natom+1), Gbja(Natom), &
-        Gria(3*Natom+1), Grja(Natom), fmdiag(Natom), &
-        Q(3,Natom), Gb(3,3,4), Gbdiag(3,3,Natom), Gcsr(4), GPcsr(4), &
-        UXY(3,3,4), UXYdiag(3,3,Natom), UXYr(4), &
-        UX(3,Natom), QP(3,Natom), GPb(3,3,4), UXYf(n3rows16,3*Natom), &
-        GU(n3rows16,3*Natom),UG(n3rows16,3*Natom))
+    n3rows16 = ((3*Natom+1)/2)*2 ! align first dimension on 16byte boundary
+
+    allocate(NNB(Natom), NBIDX(Natom,Natom), Gbia(Natom+1), Gbja(1), &
+        Gia(3*Natom+1), Gja(1), Giia(3*Natom), Gbiia(Natom), &
+        Gb(3,3,1), Gbdiag(3,3,Natom), &
+        UXYdiag(3,3,Natom), &
+        UX(3,Natom), UXYf(n3rows16,3*Natom), &
+        GU(n3rows16,3*Natom))
     
     
     include 'species.f90'
@@ -70,30 +60,10 @@ end subroutine
 
 subroutine vgwspfmcleanup()
     deallocate(NNB, NBIDX, Gbia, Gbja, &
-        Gria, Grja, fmdiag, &
-        Q, Gb, Gbdiag, Gcsr, GPcsr, &
-        UXY, UXYdiag, UXYr, &
-        UX, QP, GPb, UXYf, GU, UG)
-end subroutine
-
-subroutine unpack_y(y, Q, Gb, gama)
-    implicit none
-    double precision, intent(out) :: Q(:,:), Gb(:,:,:), gama
-    double precision, intent(in) :: y(:)
-
-    Q = reshape(y(1:3*Natom), (/3, Natom/) )
-    Gb(:,:,1:nnzb) = reshape(y(3*Natom+1 : 3*Natom + 9*nnzb), (/3,3,nnzb/) )
-    gama = y(3*Natom + 9*nnzb + 1)
-end subroutine
-
-subroutine pack_y(Q, Gb, gama, y)
-    implicit none
-    double precision, intent(in) :: Q(:,:), Gb(:,:,:), gama
-    double precision, intent(out) :: y(:)
-
-    y(1:3*Natom) = reshape(Q, (/3*Natom/) )
-    y(3*Natom+1 : 3*Natom + 9*nnzb) = reshape(Gb(:,:,1:nnzb), (/9*nnzb/) )
-    y(3*Natom + 9*nnzb + 1) = gama
+        Gia, Gja, Giia, Gbiia, &
+        Gb, Gbdiag, &
+        UXYdiag, &
+        UX, UXYf, GU)
 end subroutine
 
 include 'vgw0spfm.f90'
