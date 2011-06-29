@@ -13,6 +13,8 @@ SUBROUTINE RHSSspFM(NEQ, T, Y, YP)!, RPAR, IPAR)
 
     double precision, pointer :: Gptr(:), GPptr(:)
 
+    write (*,*) T
+
     ! first call, G=0
     if (y(3*Natom+1)==0d0) then
         call rhss_zero_time(NEQ, y, yp)
@@ -170,11 +172,11 @@ subroutine mmcsrsym(nrowsA, ncolsC, nrowsB, A, B, ia, ja, C)
             !do i=1,nrowsA
                 !c(i,j) = c(i, j) + a(i, k) * b(k, j)
             !end do
-            x = a(:,k)*b(k_j_p)
+            !x = a(:,k)*b(k_j_p)
 
 
             do p=ia(j),ia(j+1)-1
-                c(p) = c(p) + x(ja(p))
+                c(p) = c(p) + a(ja(p), k) * b(k_j_p)
             end do
         end do
     end do
