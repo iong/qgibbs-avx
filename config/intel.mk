@@ -17,5 +17,5 @@ FFLAGS:=
 LDFLAGS += -L/opt/hpc//intel-2011/lib
 CPPFLAGS += -I/opt/hpc//intel-2011/include
 
-LAPACK := -mkl=sequential
+LAPACK := -mkl=parallel
 LIBS += -lcholmod -lamd -lcamd -lcolamd -lccolamd

@@ -21,9 +21,11 @@
         LJC(1:3) = (/ 1840d0, -1.48d0, -23.2d0 /)
         mass = 1.0
         rc = 2.5
-        rfullmatsq = 1.5d0**2
-        vgw_atol = (/ 1d-4, 1d-06, .1d0 /)
-        !dtmax = 1d0
+        rfullmatsq = 1.8d0**2
+        vgw_atol = (/ 1d-5, 1d-7, .1d0 /)
+        dtmax = .25d0
+        dt0=1d-5
+        dtmin=1d-7
     end if
 
     if (present(M)) then

@@ -30,9 +30,9 @@ program clustergs
     read(33, *) (waste, r0(:,i), i=1,Natom)
     close(33)
 
-    !r0 = r0*1.05d0
+    r0 = r0*1.05d0
 
-    r0 = r0 / sigma0
+    !r0 = r0 / sigma0
 
     !write (*,*) 'max threads =', mkl_domain_get_max_threads( MKL_BLAS )
 
@@ -43,19 +43,19 @@ program clustergs
     call vgwcleanup()
 
     call vgwfminit(natom, 'LJ', massx=mass)
- !       call vgw0fm(r0, BL, taustop, U(3, i), rt(2, i))
+!    call vgw0fm(r0, BL, taustop, U(3), rt(2))
     call vgwfmcleanup()
 
     arg=coords(1:len_trim(coords)-4) // '_gs_tau.dat'
     open(60,file=trim(arg),status='REPLACE')
     call vgwspfminit(natom, 'LJ', RCUTOFF=100d0, massx=mass)
-    call vgw0spfm(r0, BL, taustop, U(4), rt(3), 60)
+    arg=coords(1:len_trim(coords)-4) // '_final.xyz'
+    call vgw0spfm(r0, BL, taustop, U(4), rt(3), 60, arg)
     call vgwspfmcleanup()
     close(60)
 
     U(2:4) = U(2:4) * epsilon0
 
-    write (*,*) endtime - begtime
     arg=coords(1:len_trim(coords)-4) // '_gs.dat'
     open(33,file=trim(arg),status='REPLACE')
 
