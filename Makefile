@@ -28,6 +28,7 @@ LDFLAGS += $(OPTFLAGS)
 LIBS += -lcholmod -lamd -lcamd -lcolamd -lccolamd $(LAPACK)
 
 pimc:=utils.f90 pairint.f90 pimc.f90
+pimcsc:=utils.f90 pimcsc.f90
 ljdimer:=utils.f90 mvgwmodeffpot.f90 vgw.f90 vgwfm.f90 dlsode.f vgwspb_H2_4G_Rc_Q_tau_SqrtMeff_Mar03.f ljdimer.f90
 clustergs:=cholmod_logdet.c  dlsode.f  utils.f90 vgw.f90 vgwspfm.f90  vgwfm.f90 clustergs.f90
 mccluster:=det_sparse_g.c utils.f90 mvgwmodeffpot.f90 vgw.f90  vgwspfm.f90 dlsode.f vgwspb_H2_4G_Rc_Q_tau_SqrtMeff_Mar03.f mccluster.f90
@@ -38,7 +39,7 @@ qgibbs:=cholmod_logdet.c utils.f90 dlsode.f vgwspfm.f90 qgibbs.f90
 objects=$(addsuffix .o,$(basename $(1)))
 
 
-all: clustergs
+all: pimcsc
 
 ifneq ($(wildcard $(VPATH)/deps.mk),)
 include $(VPATH)/deps.mk
@@ -83,7 +84,10 @@ mccluster: $(call objects,$(mccluster))
 pimc: $(call objects,$(pimc))
 	$(FC) $(LDFLAGS) -o $@ $^ $(LIBS) 
 
-gibbs4.ps: $(gibbs4)
+pimcsc: $(call objects,$(pimcsc))
+	$(FC) $(LDFLAGS) -o $@ $^ $(LIBS) 
+
+%.ps: %.f90
 	a2ps -1 --borders=no -f 10 -o $@ $^
 
 vgw.o: vgw0.f90 rhss0.f90 interaction_lists.f90 potential_energy.f90 species.f90
