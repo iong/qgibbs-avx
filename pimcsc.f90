@@ -6,18 +6,19 @@ program pimcsc
         ringdist(:), rold(:,:)
     
     double precision :: beta, betaeff, kT, K, xstep, rstep, dr, Z, &
-        Zcum, A, rn, Utot, mass = 2.0, w
-    double precision, parameter :: rmin=2.0, rmax=10.0
+        Zcum, A, rn, Utot, mass = 2.0, w, deBoer=0.3
+    double precision, parameter :: rmin=.8, rmax=5.0
 
     integer :: Natoms=2, Nbeads, Npts=100
-    integer :: nxacc=0, nxtrials=0, nracc=0, nrtrials=0, NMC=2*10**6, &
+    integer :: nxacc=0, nxtrials=0, nracc=0, nrtrials=0, NMC=4*10**5, &
         mcblen, nmcblocks=2
     
     character(256) :: arg
     
     integer :: i, j, kk
 
-    Npts = int((rmax - rmin) / 0.1) + 1
+    dr=0.05
+    Npts = int((rmax - rmin) / dr) + 1
     
     call get_command_argument(1, arg)
     read (arg, *) kT
@@ -30,7 +31,9 @@ program pimcsc
 
     mcblen = NMC/nmcblocks
     beta = 1.0/kT    
-    mass = mass * 0.0206148690370024d0
+    !mass = mass * 0.0206148690370024d0
+
+    mass = 1/deBoer**2
     
     
     str=0d0
@@ -50,7 +53,6 @@ program pimcsc
     
     xstep = 1.0/sqrt(beta*stK(Nbeads))
     rstep = xstep
-    dr = (rmax-rmin)/(Npts-1)
 
     call staging_to_real(str, r)
     Utot = stUtot(r)
@@ -108,10 +110,10 @@ program pimcsc
         end if
     end do
     
-    write(arg,'("Ueff_PIMC_kT=",F5.2,"_N=",I2,"_all.dat")') kT, Nbeads
-    open(33,file=arg,status='REPLACE')
-    write (33, '(3F12.6)') (rmin + dr*(i-1), Ueff(i,:), i=1,Npts)
-    close(33)
+    !write(arg,'("Ueff_PIMC_kT=",F5.2,"_N=",I2,"_all.dat")') kT, Nbeads
+    !open(33,file=arg,status='REPLACE')
+    !write (33, '(3F12.6)') (rmin + dr*(i-1), Ueff(i,:), i=1,Npts)
+    !close(33)
     
     A = 0
     A = sum(rhocum) * dr * 4*3.141592653
@@ -120,11 +122,15 @@ program pimcsc
         rhocum(j) = rhocum(j) /(rmin + dr*(j-1))**2 
     end do
     rhocum = rhocum/A
-    Ueffavg = -kT * log(rhocum+1d-10)
+    Ueffavg = -kT * log(rhocum)
+    Ueffavg = Ueffavg - Ueffavg(Npts)
     
     write(arg,'("Ueff_PIMC_kT=",F5.2,"_N=",I2,".dat")') kT, Nbeads
     open(33,file=arg,status='REPLACE')
-    write (33, '(3F12.6)') (rmin + dr*(i-1), Ueffavg(i), rhocum(i), i=1,Npts)
+    do i=1,Npts
+        if (rhocum(i) == 0.0) cycle
+        write (33, '(3F12.6)') rmin + dr*(i-1), Ueffavg(i), rhocum(i)
+    end do
     close(33)
 contains
 
@@ -191,6 +197,19 @@ pure function SilveraGoldman(rv)
     SilveraGoldman = exp(palpha - pbeta*r - pgamma*rsq) - LJ*fc
 end function
 
+function LennardJones(rv)
+    double precision, intent(in) :: rv(3,2)
+    double precision :: LennardJones
+
+    double precision :: rsq, y6
+
+    rsq = sum((rv(:,2) - rv(:,1))**2)
+
+    y6 = 1d0/rsq**3
+
+    LennardJones = 4d0*(y6**2 - y6)
+end function
+
 
 function stUtot(r)
     double precision, intent(in) :: r(:,:,:)
@@ -199,7 +218,7 @@ function stUtot(r)
    
     stUtot = 0.0
     do j=1,Nbeads
-        stUtot = stUtot + SilveraGoldman(r(:,:,j))
+        stUtot = stUtot + LennardJones(r(:,:,j))
     end do
 end function
 
