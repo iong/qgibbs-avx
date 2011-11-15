@@ -39,19 +39,23 @@ program clustergs
     taustop = 1d0/kT
     mass = 1/deBoer**2
     call vgwinit(natom, 'LJ', RCUTOFF=100d0, massx=mass)
-!        call vgw0(r0, BL, taustop, U(2, i), rt(1, i))
+    !call vgw0(r0, BL, taustop, U(2, i), rt(1, i))
     call vgwcleanup()
 
-    call vgwfminit(natom, 'LJ', massx=mass)
-!    call vgw0fm(r0, BL, taustop, U(3), rt(2))
+    call vgwfminit(natom, 'LJ', massx=mass, RCUTOFF=100d0)
+    call vgw0fm(r0, BL, taustop, U(3), rt(2))
     call vgwfmcleanup()
+    !stop
 
     arg=coords(1:len_trim(coords)-4) // '_gs_tau.dat'
     open(60,file=trim(arg),status='REPLACE')
     call vgwspfminit(natom, 'LJ', RCUTOFF=100d0, massx=mass)
+
     arg=coords(1:len_trim(coords)-4) // '_final.xyz'
+
     call vgw0spfm(r0, BL, taustop, U(4), rt(3), 60, arg)
     call vgwspfmcleanup()
+
     close(60)
 
     U(2:4) = U(2:4) * epsilon0
