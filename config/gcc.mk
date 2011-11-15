@@ -2,15 +2,14 @@ ifeq ($(OS),Darwin)
 	CC:=gcc-mp-4.6
 	FC:=gfortran-mp-4.6
 	CPPFLAGS:=-I/opt/local/include/ufsparse
-	LDFLAGS += -L/opt/intel/composerxe-2011/mkl/lib -L/opt/local/lib
-#LAPACK:=-framework vecLib
+	LDFLAGS += -L$(MKLROOT)/lib -L/opt/local/lib
 	LAPACK:=-lmkl_gf_lp64 -lmkl_sequential -lmkl_core
 	LIBS += -lmetis
 else
 	CC:=gcc-4.6
 	FC:=gfortran-4.6
 	CPPFLAGS:=-I/usr/include/suitesparse
-	LDFLAGS += -L/opt/intel/composerxe-2011/mkl/lib/intel64
+	LDFLAGS += -L$(MKLROOT)/lib/intel64
 	LAPACK:=-Bstatic -Wl,--start-group -lmkl_gf_lp64 -lmkl_sequential -lmkl_core -Wl,--end-group -Bdynamic
 endif
 
