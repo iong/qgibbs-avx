@@ -96,6 +96,6 @@ vgwfm.o: vgw0fm.f90 rhssfm.f90 species.f90
 vgwspfm.o: vgw0spfm.f90 rhssspfm.f90 species.f90
 
 clean:
-	$(RM) *.o *.mod *.mod.F90 *.opari.inc opari.rc opari.tab.c *.mod.F
+	$(RM) *.o *.mod
 
 .PHONY: deps debug clean
