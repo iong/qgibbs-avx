@@ -25,7 +25,11 @@ FFLAGS += $(OPTFLAGS)
 CFLAGS += $(OPTFLAGS)
 LDFLAGS += $(OPTFLAGS)
 
-LIBS += -lcholmod -lamd -lcamd -lcolamd -lccolamd $(LAPACK)
+LIBS += -lcholmod -lamd -lcamd -lcolamd -lccolamd
+ifeq ($(OS),Darwin)
+	LIBS += -lmetis
+endif
+LIBS += $(LAPACK)
 
 pimc:=utils.f90 pairint.f90 pimc.f90
 pimcsc:=utils.f90 pimcsc.f90
@@ -35,7 +39,7 @@ mccluster:=det_sparse_g.c utils.f90 mvgwmodeffpot.f90 vgw.f90  vgwspfm.f90 dlsod
 gibbs3:=utils.f90 pairint.f90 gibbs3.f90
 gibbs4:=gibbs4.f90
 gibbs3h:=gibbs3h.f90
-qgibbs:=cholmod_logdet.c utils.f90 dlsode.f vgwspfm.f90 qgibbs.f90
+qgibbs:=cholmod_logdet.c utils.f90 dlsode.f vgw.f90 qgibbs.f90
 objects=$(addsuffix .o,$(basename $(1)))
 
 
