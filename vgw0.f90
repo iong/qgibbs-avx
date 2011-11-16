@@ -60,7 +60,7 @@ SUBROUTINE vgw0(Q0, BL_, beta,Ueff, rt)
 
     logrho = 2.0*Natom*y(NEQ) - 0.5*LOGDET - 1.5*Natom*log(4.0*M_PI)
     ncalls = IWORK(12)
-    write (*,*) IWORK(11), 'steps,', IWORK(12), ' RHSS calls, logdet =', logdet
+    !write (*,*) IWORK(11), 'steps,', IWORK(12), ' RHSS calls, logdet =', logdet
 
     deallocate(y, yp, RWORK, IWORK, ATOL)
 
