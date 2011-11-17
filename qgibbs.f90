@@ -10,30 +10,32 @@ program qgibbs
     integer :: Ntot, N(2), Nswap=0, Nvol
     integer :: nswapacc = 0, nmum(2)
     integer :: nxtrials(2)=0, nxacc(2)=0, nvoltrials=0, nvolacc=0
-    integer :: imc, NMC=15000000, jmc, Nequil=100000, mcblen=1000000, ib, NMCstart
+    integer :: imc=0, NMC=15000000, jmc, Nequil=100000, mcblen=10000, ib, NMCstart
     integer :: logfd=31
-    character(LEN=256) :: arg
+    character(LEN=256) :: arg, datadir
+    logical :: restart = .FALSE.
+    namelist/input_parameters/N, rho0, kT, deBoer, Nswap
+    namelist/restart_parameters/imc, N, Vtot, V, bl, nxtrials, nxacc, xstep, nswapacc, nvoltrials, nvolacc, Vstep, rs
 
 
     real*8 :: rn
 
-    if (command_argument_count() == 4) then
+    if (command_argument_count() == 2) then
+        restart = .TRUE.
         call get_command_argument(1, arg)
-        call load_xyz(arg)
-        read(arg, '(7X,I10)') NMCstart
-        Nequil = 0
-        NMCstart = NMCstart + 1
+        open(33,file=trim(arg))
+        read(33,NML=input_parameters)
+        close(33)
+
+        Ntot = sum(N)
+        allocate(rs(3, Ntot, 2))
 
         call get_command_argument(2, arg)
-        read (arg, *) kT
+        open(33,file=trim(arg))
+        read(33,NML=restart_parameters)
+        close(33)
 
-        call get_command_argument(3, arg)
-        read (arg, *) deBoer
-
-        call get_command_argument(4, arg)
-        read(arg, *) Nswap
-
-        write (*,*) NMCstart, kT
+        imc = imc + 1
     else
         call get_command_argument(1, arg)
         read (arg, *) N(1)
@@ -72,15 +74,16 @@ program qgibbs
     write (*,*) N, V, bl
 
 
-    write(arg, '("qgibbs_kT=",F5.2,".log")') kT
-    open(logfd,file=trim(arg), status='REPLACE')
-    write(logfd, '(A)') '# NMC N1 N2 V1 V2 rho1 rho2 U1 U2 p1 p2 mu1 mu2 swapacc'
+    write(datadir, '("qgibbs_kT=",F5.2)') kT
+    call replace_char(datadir, ' ', '0')
+    call system('mkdir -p '//trim(datadir))
 
-    Vstep=0.01*minval(V)
-    xstep = 3.0/bl
+    open(39,file=trim(datadir)//"/input.h")
+    write(39,NML=input_parameters)
+    close(39)
 
-    allocate(mcblock(16, NMC/mcblen))
-
+    write(arg, '("qgibbs_kT=",F5.2,".dat")') kT
+    call replace_char(arg, ' ', '0')
 
     Nvol = 1!minval(N)/20
 
@@ -89,25 +92,41 @@ program qgibbs
     rhcore = 0.95
     VdeBroglie = (2*M_PI*deBoer/sqrt(kT))**3
 
+    if (restart) then
+            open(logfd,file=trim(datadir)//'/'//trim(arg), status='OLD', position='APPEND')
+    else
+            open(logfd,file=trim(datadir)//'/'//trim(arg), status='REPLACE')
+            write(logfd, '(A)') '# NMC N1 N2 V1 V2 rho1 rho2 U1 U2 p1 p2 mu1 mu2 swapacc mum1 mum2 nmum1 nmum2'
+            Vstep=0.01*minval(V)
+            xstep = 3.0/bl
+    end if
+
     U0 = total_energy(bl)
 
-    do imc=1,Nequil
+
+    do
+        if (imc > Nequil) exit
+
         call random_number(rn)
         jmc=int(rn*Ntot) + 1
         call mc_move(jmc)
         write (*,*) imc
         call cumulate()
-        if (mod(imc,10000) == 0) then
-            write (logfd,'(I10,2I5,2F12.2,2F9.6,2F14.4,2F8.4,2F16.4,F8.5)') &
-                    imc, N, V, N/V, U0(1:2), pm/Z, mum/nmum, &
-                    real(nswapacc*(Nswap+Nvol+Ntot))/(Z*real(Ntot))
-            flush(logfd)
-            call dump_xyz(imc)
+
+        if (mod(imc,mcblen) == 0) then
+            call dump_block_avg()
+            call checkpoint()
         end if
+        if (mod(imc,10*mcblen) == 0) then
+            call dump_xyz()
+        end if
+        imc = imc + 1
     end do
 
     Z = 0; Um = 0; Nm = 0; pm = 0; Vm = 0; rhom = 0; mum = 0; nmum = 0
-    do imc=NMCstart,NMC
+    do
+        if (imc > NMC) exit
+
         call random_number(rn)
         jmc=1+int(rn*(Ntot + Nswap + Nvol))
         if (jmc<= Ntot) then
@@ -120,30 +139,15 @@ program qgibbs
 
         call cumulate()
 
-        if (mod(imc,10000) == 0) then
-            write (logfd,'(I10,2I5,2F12.2,2F9.6,2F14.4,2F8.4,2F16.4,F8.5)') &
-                    imc, N, V, N/V, U0(1:2), pm/Z, -kT*log(mum/real(nmum)), &
-                    real(nswapacc*(Nswap+Nvol+Ntot))/(Z*real(Ntot))
-            flush(logfd)
-            call dump_xyz(imc)
-        end if
-
         if (mod(imc,mcblen) == 0) then
-            ib = imc / mcblen
-            mcblock(1, ib) = kT
-            mcblock(2:3, ib) = rhom/Z
-            mcblock(4:5, ib) = -kT*log(mum/real(nmum))
-            mcblock(6:7, ib) = pm/Z
-            mcblock(8:9, ib) = Um/Z
-            mcblock(10:11, ib) = Nm/Z
-            mcblock(12:13, ib) = Vm/Z
-            mcblock(14, ib) = real(nswapacc*(Ntot+Nvol+Nswap))/(Z*Ntot)
-            mcblock(15:16, ib) = nmum
-
-            call dump_avg(ib)
-            Z = 0; Um = 0; Nm = 0; pm = 0; Vm = 0; rhom = 0; mum = 0; nmum = 0
-            nswapacc = 0
+            call dump_block_avg()
+            call checkpoint()
         end if
+        if (mod(imc,10*mcblen) == 0) then
+            call dump_xyz()
+        end if
+        
+        imc = imc + 1
     enddo
 
     close(logfd)
@@ -382,27 +386,36 @@ contains
         end do
     end subroutine cumulate
 
-    subroutine dump_avg(nmcb)
+    subroutine dump_block_avg()
         implicit none
-        integer, intent(in) :: nmcb
         integer :: i
         character(256) :: fname
 
-        write(fname, '("qgibbs_Um_",F5.2,"_NMC.dat")') kT
-        open(30,file=trim(fname))
-        write(30,'(I10, F5.2,2F10.6,2F10.3,2G13.5,2F13.3,2F10.3,2F14.2,F8.4,2F9.1)') (i*mcblen, mcblock(:,i), i=1,nmcb)
-        close(30)
-    end subroutine dump_avg
+        write(logfd,'(I10, 18(" ", G18.6))') &
+            imc, kT, rhom/Z, -kT*log(mum/real(nmum)), pm/Z, Um/Z, Nm/Z, Vm/Z,&
+            real(nswapacc*(Ntot+Nvol+Nswap))/(Z*Ntot), mum, nmum
+        flush(logfd)
 
-    subroutine dump_xyz(nmcnow)
+        rhom = 0
+        mum = 0
+        nmum = 0
+        pm = 0
+        Um = 0
+        Nm = 0
+        Vm = 0
+        nswapacc = 0
+        Z = 0
+
+    end subroutine dump_block_avg
+
+    subroutine dump_xyz()
         implicit none
-        integer, intent(in) :: nmcnow
         character(len=256) :: fname
         integer :: ibox
 
-        write(fname, '("qgibbs_",I10,".xyz")') nmcnow
+        write(fname, '(I10,".xyz")') imc
         call replace_char(fname, ' ', '0')
-        open(33,file=trim(fname),status='REPLACE')
+        open(33,file=trim(datadir)//'/'//trim(fname),status='REPLACE')
         do ibox=1,2
             write(33,*) N(ibox)
             write(33,*) bl(ibox)
@@ -438,4 +451,10 @@ contains
         rs(:,1:N(2),2) = rs2
         deallocate(rs1, rs2)
     end subroutine load_xyz
+
+    subroutine checkpoint()
+        open(33,file=trim(datadir)//'/checkpoint.h',status='REPLACE')
+        write(33,NML=restart_parameters)
+        close(33)
+    end subroutine
 end program qgibbs
