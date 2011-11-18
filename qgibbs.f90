@@ -329,7 +329,11 @@ contains
     end subroutine mc_vol
 
     function total_energy(bln, ibox) result(utot)
+#ifdef VGWSPFM
+        use vgwspfm, only:   vgwinit => vgwspfminit, vgw0 => vgw0spfm, vgwcleanup => vgwspfmcleanup
+#else
         use vgw
+#endif
         implicit none
         real*8, intent(in) :: bln(2)
         integer, intent(in), optional :: ibox
