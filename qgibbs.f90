@@ -10,7 +10,7 @@ program qgibbs
     integer :: Ntot, N(2), Nswap=0, Nvol
     integer :: nswapacc = 0, nmum(2)
     integer :: nxtrials(2)=0, nxacc(2)=0, nvoltrials=0, nvolacc=0
-    integer :: imc=0, NMC=15000000, jmc, Nequil=100000, mcblen=10000, ib, NMCstart
+    integer :: imc=1, NMC=15000000, jmc, Nequil=100000, mcblen=10000, ib, NMCstart
     integer :: logfd=31
     character(LEN=256) :: arg, datadir
     logical :: restart = .FALSE.
