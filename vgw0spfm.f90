@@ -1,4 +1,88 @@
-SUBROUTINE vgw0spfm(Q0, BL_, TAUMAX, Havg, rt, logfd, cfgname)
+SUBROUTINE vgw0spfm(Q0, BL_, beta, Ueff, rt)
+    IMPLICIT NONE
+    double precision, intent(in) :: Q0(:,:), beta, BL_
+    double precision, intent(out) :: Ueff
+    double precision, intent(out), optional :: rt
+    real*8 :: LOGDET, logrho, TSTOP, start_time, stop_time, T
+    integer :: i, ncalls
+
+    double precision, allocatable :: Y(:), RWORK(:), YP(:), ATOL(:)
+    integer, allocatable :: IWORK(:)
+
+    integer :: NEQ, ITOL, ITASK, IOPT, MF, ISTATE, LRW, LIW
+    double precision ::  RTOL
+
+    Natom = size(Q0, 2)
+    BL = BL_
+
+    call interaction_lists(Q0)
+
+    if (size(Gja) < nnz) then
+
+        deallocate(Gb, Gbja, Gja)
+
+        allocate(Gb(3,3,nnz/9), Gbja(nnz/9), Gja(nnz))
+    end if
+
+    call init_sparse_pattern(Q0)
+    call test_ia_ja(Gia, Gja)
+
+    NEQ = 3*Natom + nnz + 1
+
+
+    LRW = 20 + 16*NEQ
+    LIW = 30
+    allocate(Y(NEQ), YP(NEQ), ATOL(NEQ), RWORK(LRW), IWORK(LIW))
+
+    ITOL=2
+    RTOL=1d-5
+    ATOL(1:3*Natom) = vgw_atol(1)
+    ATOL(3*Natom+1:3*Natom+nnz)=vgw_atol(2)
+    ATOL(NEQ) = vgw_atol(3)
+    ITASK=1
+    ISTATE=1
+    IOPT = 1
+    MF=10
+    IWORK=0
+
+    IWORK(6) = 50000 ! MXSTEP
+
+    RWORK(5)=dt0
+    RWORK(6)=dtmax
+    RWORK(7)=dtmin
+
+    y=0d0
+    y(1:3*Natom) = reshape(Q0, (/ 3*Natom /) )
+
+    call cpu_time(start_time)
+
+    T=0
+    TSTOP = 0.5d0*beta
+    CALL DLSODE(RHSSspFM,NEQ,Y,T,TSTOP,ITOL,RTOL,ATOL,ITASK,ISTATE,IOPT,&
+        RWORK,LRW,IWORK,LIW,JAC,MF)
+
+    gama = Y(NEQ) * real(Natom)
+
+    logdet = cholmod_logdet(C_LOC(y(3*Natom+1)), C_LOC(Gia), C_LOC(Gja), &
+        3*Natom)
+
+    logrho = 2.0*gama - 0.5*logdet - 1.5*Natom*log(4.0*M_PI)
+
+    call cpu_time(stop_time)
+
+    ncalls = IWORK(12)
+    write (*,*) IWORK(11), 'steps,', IWORK(12), ' RHSS calls, logdet =', logdet
+
+    deallocate(y, yp, RWORK, IWORK, ATOL)
+
+    Ueff = -logrho/beta
+    if (present(rt)) then
+        rt = (stop_time - start_time) / real(ncalls)
+     end if
+END SUBROUTINE
+
+
+SUBROUTINE vgw0spfmgs(Q0, BL_, TAUMAX, Havg, rt, logfd, cfgname)
     IMPLICIT NONE
     double precision, intent(in) :: Q0(:,:), TAUMAX, BL_
     double precision, intent(out) :: Havg
