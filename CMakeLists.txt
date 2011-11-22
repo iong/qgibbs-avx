@@ -14,10 +14,10 @@ if (CMAKE_Fortran_COMPILER_ID STREQUAL Intel)
 	set(CMAKE_Fortran_FLAGS_RELWITHDEBINFO "-O1 -g")
 	set(CMAKE_C_FLAGS_RELEASE "-O3 -xHost -ipo")
 
-	find_library(CHOLMOD_LIBS NAMES cholmod PATHS /opt/hpc/intel-2011/lib NO_DEFAULT_PATH)
-
 elseif(CMAKE_Fortran_COMPILER_ID STREQUAL GNU)
+
 	find_package(LAPACK REQUIRED)
+
 	if (APPLE)
 		message(WARNING "\nMKL for MacOSX has no gfortran interface.\n"
 			"qgibbs_fastvgw will not be build!")
@@ -26,6 +26,7 @@ elseif(CMAKE_Fortran_COMPILER_ID STREQUAL GNU)
 		get_filename_component(MKL_LIBDIR ${MKL_GF} PATH)
 		set(MKL -Bstatic -Wl,--start-group -lmkl_gf_lp64 -lmkl_sequential -lmkl_core -Wl,--end-group -Bdynamic)
 	endif()
+
 endif()
 
 include(FindCHOLMOD.cmake)
@@ -55,5 +56,5 @@ if(NOT (CMAKE_Fortran_COMPILER_ID STREQUAL GNU AND APPLE))
 	if (MKL_LIBDIR)
 		link_directories(qgibbs_fastvgw ${MKL_LIBDIR})
 	endif()
-	target_link_libraries(qgibbs_fastvgw ${CHOLMOD_LIBS} ${MKL})
+	target_link_libraries(qgibbs_fastvgw ${CHOLMOD_LIBRARIES} ${MKL})
 endif()
