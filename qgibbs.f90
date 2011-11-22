@@ -96,14 +96,14 @@ program qgibbs
             open(logfd,file=trim(datadir)//'/'//trim(arg), status='OLD', position='APPEND')
     else
             open(logfd,file=trim(datadir)//'/'//trim(arg), status='REPLACE')
-            write(logfd, '(A)') '# NMC N1 N2 V1 V2 rho1 rho2 U1 U2 p1 p2 mu1 mu2 swapacc mum1 mum2 nmum1 nmum2'
+            write(logfd, '("# NMC N1 N2 V1 V2 rho1 rho2 U1 U2 p1 p2 mu1 mu2 swapacc mum1 mum2 nmum1 nmum2")'
             Vstep=0.01*minval(V)
             xstep = 3.0/bl
     end if
 
     U0 = total_energy(bl)
 
-
+    call reset_averages()
     do
         if (imc > Nequil) exit
 
@@ -123,7 +123,7 @@ program qgibbs
         imc = imc + 1
     end do
 
-    Z = 0; Um = 0; Nm = 0; pm = 0; Vm = 0; rhom = 0; mum = 0; nmum = 0
+    call reset_averages()
     do
         if (imc > NMC) exit
 
@@ -390,16 +390,7 @@ contains
         end do
     end subroutine cumulate
 
-    subroutine dump_block_avg()
-        implicit none
-        integer :: i
-        character(256) :: fname
-
-        write(logfd,'(I10, 18(" ", G18.6))') &
-            imc, kT, rhom/Z, -kT*log(mum/real(nmum)), pm/Z, Um/Z, Nm/Z, Vm/Z,&
-            real(nswapacc*(Ntot+Nvol+Nswap))/(Z*Ntot), mum, nmum
-        flush(logfd)
-
+    subroutine reset_averages()
         rhom = 0
         mum = 0
         nmum = 0
@@ -409,7 +400,17 @@ contains
         Vm = 0
         nswapacc = 0
         Z = 0
+    end subroutine reset_averages
 
+    subroutine dump_block_avg()
+        implicit none
+        integer :: i
+        character(256) :: fname
+
+        write(logfd,'(I10, 18(" ", G18.6))') &
+            imc, kT, rhom/Z, -kT*log(mum/real(nmum)), pm/Z, Um/Z, Nm/Z, Vm/Z,&
+            real(nswapacc*(Ntot+Nvol+Nswap))/(Z*Ntot), mum, nmum
+        flush(logfd)
     end subroutine dump_block_avg
 
     subroutine dump_xyz()
