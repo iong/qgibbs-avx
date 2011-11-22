@@ -65,6 +65,13 @@ SUBROUTINE vgw0spfm(Q0, BL_, beta, Ueff, rt)
 
     logdet = cholmod_logdet(C_LOC(y(3*Natom+1)), C_LOC(Gia), C_LOC(Gja), &
         3*Natom)
+    if (logdet == 1234.1234d0) then
+        print *, 'The G matrix is not positive definite!'
+        open(10,file='nonposdef.xyz', status='REPLACE')
+        write(10, '(I5/2F16.8/("Ne",3F14.8))') Natom, bl, beta, q0
+        close(10)
+    end if
+        
 
     logrho = 2.0*gama - 0.5*logdet - 1.5*Natom*log(4.0*M_PI)
 

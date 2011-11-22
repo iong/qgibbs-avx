@@ -51,6 +51,7 @@ double cholmod_logdet(double *G, int *ia, int *ja, int N)
     cholmod_factorize (A, L, &c) ;
 
 	if (c.status == CHOLMOD_NOT_POSDEF) {
+		return 1234.1234;
 		f = fopen("G_cholmod.mtx", "w+");
 		cholmod_write_sparse(f, A, NULL, NULL, &c);
 		fclose(f);
