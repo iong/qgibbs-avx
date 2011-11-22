@@ -13,7 +13,7 @@ SUBROUTINE RHSSspFM(NEQ, T, Y, YP)!, RPAR, IPAR)
 
     double precision, pointer :: Gptr(:), GPptr(:)
 
-    write (*,*) T
+!    write (*,*) T
 
     ! first call, G=0
     if (y(3*Natom+1)==0d0) then
