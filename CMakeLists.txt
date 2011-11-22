@@ -10,7 +10,7 @@ if (CMAKE_Fortran_COMPILER_ID STREQUAL Intel)
 	set(MKL -mkl=sequential)
 	set(LAPACK_LIBRARIES ${MKL})
 	set(CMAKE_Fortran_FLAGS_RELEASE "-O3 -xHost -ipo")
-	set(CMAKE_Fortran_FLAGS_DEBUG "-fpe0 -traceback -check all -ftrapuv -warn unused")
+	set(CMAKE_Fortran_FLAGS_DEBUG "-fpe0 -traceback -check all -ftrapuv -warn unused -O0 -g")
 	set(CMAKE_Fortran_FLAGS_RELWITHDEBINFO "-O1 -g")
 	set(CMAKE_C_FLAGS_RELEASE "-O3 -xHost -ipo")
 
