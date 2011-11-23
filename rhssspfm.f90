@@ -132,8 +132,8 @@ end subroutine RHSSspFM
 
 subroutine rhss_zero_time(NEQ, y, yp)
     integer, intent(in) :: NEQ
-    double precision, intent(in) :: y(:)
-    double precision, intent(out) :: yp(:)
+    double precision, intent(in) :: y(NEQ)
+    double precision, intent(out) :: yp(NEQ)
 
     double precision :: qij(3), rsq
     integer :: i, j
