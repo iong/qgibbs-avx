@@ -89,7 +89,7 @@ program qgibbs
 
     beta = 1.0/kT
 
-    rhcore = 0.95
+    rhcore = 0.9
     VdeBroglie = (2*M_PI*deBoer/sqrt(kT))**3
 
     if (restart) then
@@ -225,7 +225,7 @@ contains
         rsn = rso + xstep(ibox) * (dr-0.5d0)
         rsn = rsn - floor(rsn)
 
-        if (too_close(rsn, ibox, j) then
+        if (too_close(rsn, ibox, j)) then
             p = -1.0
         else
             rs(:,j,ibox) = rsn 
