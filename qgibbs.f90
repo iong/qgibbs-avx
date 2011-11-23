@@ -183,18 +183,19 @@ contains
         deallocate(occupied)
     end subroutine populate_cube2
 
-    pure function too_close(rsj, rs, blj)
-        real*8, intent(in) :: rsj(3), rs(:,:), blj
+    pure function too_close(rsj, ibox, jskip)
+        real*8, intent(in) :: rsj(3)
+        integer, intent(in) :: ibox, jskip
         logical :: too_close
         real*8 :: drsq, rshc_sq, drs(3)
         integer :: i
 
         too_close = .FALSE.
-        rshc_sq = (rhcore / blj)**2
-        do i=1,size(rs, 2)
-            drs = rsj - rs(:,i)
+        rshc_sq = (rhcore / bl(ibox))**2
+        do i=1,N(ibox)
+            drs = rsj - rs(:,i, ibox)
             drsq = sum(min_image(drs)**2)
-            if (drsq < rshc_sq) then
+            if (drsq < rshc_sq .and. i /= jskip) then
                 too_close = .TRUE.
                 return
             end if
@@ -222,10 +223,18 @@ contains
         call random_number(dr)
         rso = rs(:,j,ibox)
         rsn = rso + xstep(ibox) * (dr-0.5d0)
-        rs(:,j,ibox) = rsn - floor(rsn)
+        rsn = rsn - floor(rsn)
 
-        U0new = total_energy(bl, ibox)
-        p = exp(-beta * sum(U0new(1:2) - U0(1:2)) )
+        if (too_close(rsn, ibox, j) then
+            p = -1.0
+        else
+            rs(:,j,ibox) = rsn 
+
+            U0new = total_energy(bl, ibox)
+            
+            p = exp(-beta * sum(U0new(1:2) - U0(1:2)) )
+        end if
+
         call random_number(rn)
         if (p>rn) then
             nxacc(ibox) = nxacc(ibox)  + 1
@@ -258,7 +267,7 @@ contains
         if (N(isrc) == 0) return
 
         call random_number(rsn)
-        if (too_close(rsn, rs(:,1:N(idest), idest), bl(idest)) ) return
+        if (too_close(rsn, idest, -1) ) return
 
         call random_number(rn)
         jkill = 1 + int(rn*N(isrc))
@@ -281,7 +290,7 @@ contains
 
         call random_number(rn)
         if (pacc > rn) then
-            write (*,'(4G15.6,F6.4)') U0new(1:2), U0(1:2), pacc
+            !write (*,'(4G15.6,F6.4)') U0new(1:2), U0(1:2), pacc
             nswapacc = nswapacc + 1
             U0 = U0new
         else
