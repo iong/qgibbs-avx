@@ -61,7 +61,7 @@ program qgibbs
 
         if (minval(bl) < 5.0) then
             write (*,'("Box #",I1," is too small. L = ",F8.4, &
-                    & " < 5*sigma = ",F8.4)') minloc(bl), minval(bl), 5.0
+                 & " < 5*sigma = ",F8.4)') minloc(bl), minval(bl), 5.0
             write (*,*) 'Consider increasing the number of particles or decreasing the density'
         end if
 
@@ -146,7 +146,7 @@ program qgibbs
         if (mod(imc,10*mcblen) == 0) then
             call dump_xyz()
         end if
-        
+
         imc = imc + 1
     enddo
 
@@ -197,7 +197,7 @@ contains
 
             drs = rsj - rs(:,i, ibox)
             drsq = sum(min_image(drs)**2)
-        
+
             if (drsq < rshc_sq) then
                 too_close = .TRUE.
                 return
@@ -234,7 +234,7 @@ contains
             rs(:,j,ibox) = rsn 
 
             U0new = total_energy(bl, ibox)
-            
+
             p = exp(-beta * sum(U0new(1:2) - U0(1:2)) )
         end if
 
@@ -288,7 +288,7 @@ contains
 
         pacc = pacc0 * exp( - beta * sum(U0new(1:2) - U0(1:2)) )
         mum(idest) = mum(idest) + V(idest)/(VdeBroglie * N(idest)) * &
-                exp(-beta*( U0new(idest) - U0(idest) ) )
+             exp(-beta*( U0new(idest) - U0(idest) ) )
         nmum(idest) = nmum(idest) + 1
 
         call random_number(rn)
@@ -357,7 +357,7 @@ contains
             call vgwinit(N(ibox), 'LJ', massx=1d0/deBoer**2)
 
             call vgw0(rs(:,1:N(ibox),ibox)*bln(ibox), bln(ibox), beta, &
-                    Utot(ibox))
+                 Utot(ibox))
 
             call vgwcleanup()
 
@@ -486,5 +486,5 @@ contains
         open(33,file=trim(datadir)//'/checkpoint.h',status='REPLACE')
         write(33,NML=restart_parameters)
         close(33)
-    end subroutine
+    end subroutine checkpoint
 end program qgibbs
