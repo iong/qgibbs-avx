@@ -96,7 +96,7 @@ program qgibbs
             open(logfd,file=trim(datadir)//'/'//trim(arg), status='OLD', position='APPEND')
     else
             open(logfd,file=trim(datadir)//'/'//trim(arg), status='REPLACE')
-            write(logfd, '("# NMC N1 N2 V1 V2 rho1 rho2 U1 U2 p1 p2 mu1 mu2 swapacc mum1 mum2 nmum1 nmum2")'
+            write(logfd, '("# NMC N1 N2 V1 V2 rho1 rho2 U1 U2 p1 p2 mu1 mu2 swapacc mum1 mum2 nmum1 nmum2")')
             Vstep=0.01*minval(V)
             xstep = 3.0/bl
     end if
