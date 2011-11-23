@@ -183,7 +183,7 @@ contains
         deallocate(occupied)
     end subroutine populate_cube2
 
-    pure function too_close(rsj, ibox, jskip)
+    function too_close(rsj, ibox, jskip)
         real*8, intent(in) :: rsj(3)
         integer, intent(in) :: ibox, jskip
         logical :: too_close
