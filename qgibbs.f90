@@ -93,12 +93,12 @@ program qgibbs
     VdeBroglie = (2*M_PI*deBoer/sqrt(kT))**3
 
     if (restart) then
-            open(logfd,file=trim(datadir)//'/'//trim(arg), status='OLD', position='APPEND')
+        open(logfd,file=trim(datadir)//'/'//trim(arg), status='OLD', position='APPEND')
     else
-            open(logfd,file=trim(datadir)//'/'//trim(arg), status='REPLACE')
-            write(logfd, '("# NMC N1 N2 V1 V2 rho1 rho2 U1 U2 p1 p2 mu1 mu2 swapacc mum1 mum2 nmum1 nmum2")')
-            Vstep=0.01*minval(V)
-            xstep = 3.0/bl
+        open(logfd,file=trim(datadir)//'/'//trim(arg), status='REPLACE')
+        call dump_block_avg(header=.TRUE.)
+        Vstep=0.01*minval(V)
+        xstep = 3.0/bl
     end if
 
     U0 = total_energy(bl)
@@ -414,14 +414,27 @@ contains
         Z = 0
     end subroutine reset_averages
 
-    subroutine dump_block_avg()
+    subroutine dump_block_avg(header)
         implicit none
+        logical, optional :: header
         integer :: i
         character(256) :: fname
+        double precision :: mu(2) = 0d0
+
+        if (present(header) .and. header) then
+            write(logfd, '("# NMC kT rho1 rho2 mu1 mu2 p1 p2 U1 U2 N1 N2 V1 V2 swapacc mum1 mum2 nmum1 nmum2")')
+            flush(logfd)
+            return
+        end if
+
+        if (product(nmum) /= 0 .and. product(mum) /= 0) then
+            mu = -kT*log(mum/real(nmum))
+        end if
 
         write(logfd,'(I10, 18(" ", G18.6))') &
-            imc, kT, rhom/Z, -kT*log(mum/real(nmum)), pm/Z, Um/Z, Nm/Z, Vm/Z,&
-            real(nswapacc*(Ntot+Nvol+Nswap))/(Z*Ntot), mum, nmum
+             imc, kT, rhom/Z, mu, pm/Z, Um/Z, Nm/Z, Vm/Z,&
+             real(nswapacc*(Ntot+Nvol+Nswap))/(Z*Ntot), mum, nmum
+
         flush(logfd)
     end subroutine dump_block_avg
 
