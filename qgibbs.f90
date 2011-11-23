@@ -89,7 +89,7 @@ program qgibbs
 
     beta = 1.0/kT
 
-    rhcore = 0.9
+    rhcore = 0.8 ! exp(-VLJ/kT) < 1e-9 for kT=1.2
     VdeBroglie = (2*M_PI*deBoer/sqrt(kT))**3
 
     if (restart) then
@@ -193,9 +193,12 @@ contains
         too_close = .FALSE.
         rshc_sq = (rhcore / bl(ibox))**2
         do i=1,N(ibox)
+            if ( i == jskip ) cycle
+
             drs = rsj - rs(:,i, ibox)
             drsq = sum(min_image(drs)**2)
-            if (drsq < rshc_sq .and. i /= jskip) then
+        
+            if (drsq < rshc_sq) then
                 too_close = .TRUE.
                 return
             end if
