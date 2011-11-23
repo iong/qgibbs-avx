@@ -70,6 +70,7 @@ SUBROUTINE vgw0spfm(Q0, BL_, beta, Ueff, rt)
         open(10,file='nonposdef.xyz', status='REPLACE')
         write(10, '(I5/2F16.8/("Ne",3F14.8))') Natom, bl, beta, q0
         close(10)
+        stop
     end if
         
 
