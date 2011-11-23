@@ -436,6 +436,8 @@ contains
              real(nswapacc*(Ntot+Nvol+Nswap))/(Z*Ntot), mum, nmum
 
         flush(logfd)
+
+        call reset_averages()
     end subroutine dump_block_avg
 
     subroutine dump_xyz()
