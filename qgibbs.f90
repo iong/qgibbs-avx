@@ -96,7 +96,7 @@ program qgibbs
         open(logfd,file=trim(datadir)//'/'//trim(arg), status='OLD', position='APPEND')
     else
         open(logfd,file=trim(datadir)//'/'//trim(arg), status='REPLACE')
-        call dump_block_avg(header=.TRUE.)
+        call dump_block_avg(just_header=.TRUE.)
         Vstep=0.01*minval(V)
         xstep = 3.0/bl
     end if
@@ -414,17 +414,19 @@ contains
         Z = 0
     end subroutine reset_averages
 
-    subroutine dump_block_avg(header)
+    subroutine dump_block_avg(just_header)
         implicit none
-        logical, optional :: header
+        logical, optional :: just_header
         integer :: i
         character(256) :: fname
         double precision :: mu(2) = 0d0
 
-        if (present(header) .and. header) then
-            write(logfd, '("# NMC kT rho1 rho2 mu1 mu2 p1 p2 U1 U2 N1 N2 V1 V2 swapacc mum1 mum2 nmum1 nmum2")')
-            flush(logfd)
-            return
+        if (present(just_header)) then
+            if (just_header) then
+                write(logfd, '("# NMC kT rho1 rho2 mu1 mu2 p1 p2 U1 U2 N1 N2 V1 V2 swapacc mum1 mum2 nmum1 nmum2")')
+                flush(logfd)
+                return
+            end if
         end if
 
         if (product(nmum) /= 0 .and. product(mum) /= 0) then
