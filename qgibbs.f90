@@ -101,7 +101,8 @@ program qgibbs
         xstep = 3.0/bl
     end if
 
-    U0 = total_energy(bl)
+    U0(1) = total_energy(N(1), rs(:,1:N(1)), bl(1), deBoer)
+    U0(2) = total_energy(N(2), rs(:,1:N(2)), bl(2), deBoer)
 
     call reset_averages()
     do
@@ -233,7 +234,7 @@ contains
         else
             rs(:,j,ibox) = rsn 
 
-            U0new = total_energy(bl, ibox)
+            U0new = total_energy(N(ibox), rs(:,1:N(ibox)), bl(ibox), deBoer)
 
             p = exp(-beta * sum(U0new(1:2) - U0(1:2)) )
         end if
@@ -284,7 +285,8 @@ contains
         N(isrc) = N(isrc) - 1
         N(idest) = N(idest) + 1
 
-        U0new = total_energy(bl)
+        U0new(1) = total_energy(N(1), rs(:,1:N(1)), bl(1), deBoer)
+        U0new(2) = total_energy(N(2), rs(:,1:N(2)), bl(2), deBoer)
 
         pacc = pacc0 * exp( - beta * sum(U0new(1:2) - U0(1:2)) )
         mum(idest) = mum(idest) + V(idest)/(VdeBroglie * N(idest)) * &
@@ -319,7 +321,8 @@ contains
         ! ensure bl > 5\sigma
         if (minval(bln) < 5.0) return
 
-        U0new = total_energy(bln)
+        U0new(1) = total_energy(N(1), rs(:,1:N(1)), bln(1), deBoer)
+        U0new(2) = total_energy(N(2), rs(:,1:N(2)), bln(2), deBoer)
         logp = sum ( -beta * (U0new(1:2) - U0(1:2)) + real(N)*(log(Vn/V)) )
         call random_number(rn)
         if (logp>log(rn)) then
@@ -340,54 +343,7 @@ contains
         end if
     end subroutine mc_vol
 
-    function total_energy(bln, ibox) result(utot)
-#ifdef VGWSPFM
-        use vgwspfm, only:   vgwinit => vgwspfminit, vgw0 => vgw0spfm, vgwcleanup => vgwspfmcleanup
-#else
-        use vgw
-#endif
-        implicit none
-        real*8, intent(in) :: bln(2)
-        integer, intent(in), optional :: ibox
-        real*8 :: utot(4), fx(3, Ntot)
 
-        if (present(ibox)) then
-            Utot = U0
-
-            call vgwinit(N(ibox), 'LJ', massx=1d0/deBoer**2)
-
-            call vgw0(rs(:,1:N(ibox),ibox)*bln(ibox), bln(ibox), beta, &
-                 Utot(ibox))
-
-            call vgwcleanup()
-
-            Utot(ibox + 2) = 0d0
-            !call vgw0v(rs(:,1:N(ibox),ibox)*bln(ibox), bln(ibox), (/ beta /), &
-            !    0d0, Utot(ibox:ibox), fx(:,1:N(ibox)) )
-
-            !Utot(ibox + 2) = sum(fx(:,1:N(ibox)) * rs(:,1:N(ibox),ibox)) * bln(ibox)
-        else
-            call vgwinit(N(1), 'LJ', massx=1d0/deBoer**2)
-
-            call vgw0(rs(:,1:N(1),1)*bln(1), bln(1), beta, Utot(1))
-            Utot(3) = 0d0
-
-            call vgwcleanup()
-
-            !call vgw0v(rs(:,1:N(1),1)*bln(1), bln(1), (/ beta /), 0d0, & 
-            !    Utot(1:1), fx(:,1:N(1)) )
-
-            !Utot(3) = sum(fx(:,1:N(1)) * rs(:,1:N(1),1)) * bln(1)
-
-            call vgwinit(N(2), 'LJ', massx=1d0/deBoer**2)
-
-            call vgw0(rs(:,1:N(2),2)*bln(2), bln(2), beta, Utot(2))
-            Utot(4) = 0d0
-
-            call vgwcleanup()
-            !Utot(4) = sum(fx(:,1:N(2)) * rs(:,1:N(2),2)) * bln(2)
-        end if
-    end function total_energy
 
     subroutine cumulate()
         integer :: i
