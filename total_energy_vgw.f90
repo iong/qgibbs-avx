@@ -8,7 +8,7 @@ double precision function total_energy(rs, bl, beta, deBoer)
 
     call vgwinit(N, 'LJ', massx=1d0/deBoer**2)
 
-    call vgw0(rs, bl, beta, total_energy, scale2bl=.TRUE.)
+    call vgw0(rs*bl, bl, beta, total_energy)
 
     call vgwcleanup()
 

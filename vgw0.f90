@@ -1,9 +1,8 @@
-SUBROUTINE vgw0(Q0, BL_, beta,Ueff, scale2bl, rt)
+SUBROUTINE vgw0(Q0, BL_, beta,Ueff, rt)
     IMPLICIT NONE
     double precision, intent(in) :: Q0(:,:), beta, BL_
     double precision, intent(out) :: Ueff
     double precision, intent(out), optional :: rt
-    logical, intent(in), optional :: scale2bl
     real*8 :: LOGDET, logrho, TSTOP, start_time, stop_time
     integer :: i, j, ncalls
 
@@ -46,11 +45,7 @@ SUBROUTINE vgw0(Q0, BL_, beta,Ueff, scale2bl, rt)
     
     T = 0
     y = 0d0
-    if (present(scale2bl)) then
-        y(1:3*Natom) = bl*reshape(Q0, (/ 3*Natom /) )
-    else
-        y(1:3*Natom) = reshape(Q0, (/ 3*Natom /) )
-    end if
+    y(1:3*Natom) = reshape(Q0, (/ 3*Natom /) )
 
     call cpu_time(start_time)
     TSTOP = 0.5d0*beta
