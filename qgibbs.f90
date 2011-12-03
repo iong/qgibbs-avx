@@ -12,8 +12,8 @@ program qgibbs
     integer :: nxtrials(2)=0, nxacc(2)=0, nvoltrials=0, nvolacc=0
     integer :: imc=1, NMC=15000000, jmc, Nequil=100000, mcblen=10000, ib, NMCstart
     integer :: logfd=31
-    character(LEN=256) :: arg, datadir
-    logical :: restart = .FALSE.
+    character(LEN=256) :: arg, datadir, logfile
+    logical :: restart = .FALSE., oldlog
     namelist/input_parameters/N, rho0, kT, deBoer, Nswap
     namelist/restart_parameters/imc, N, Vtot, V, bl, nxtrials, nxacc, xstep, nswapacc, nvoltrials, nvolacc, Vstep, rs
 
@@ -84,6 +84,20 @@ program qgibbs
 
     write(arg, '("qgibbs_kT=",F5.2,".dat")') kT
     call replace_char(arg, ' ', '0')
+    logfile = trim(datadir)// '/' // arg
+    if (restart) then
+        inquire(file=trim(logfile), EXIST=oldlog)
+        if (oldlog) then
+            open(logfd,file=trim(logfile), status='OLD', position='APPEND')
+        else
+            open(logfd,file=trim(logfile), status='NEW')
+        end if
+    else
+        open(logfd,file=trim(logfile), status='REPLACE')
+        call dump_block_avg(just_header=.TRUE.)
+        Vstep=0.01*minval(V)
+        xstep = 3.0/bl
+    end if
 
     Nvol = 1!minval(N)/20
 
@@ -92,14 +106,6 @@ program qgibbs
     rhcore = 0.8 ! exp(-VLJ/kT) < 1e-9 for kT=1.2
     VdeBroglie = (2*M_PI*deBoer/sqrt(kT))**3
 
-    if (restart) then
-        open(logfd,file=trim(datadir)//'/'//trim(arg), status='OLD', position='APPEND')
-    else
-        open(logfd,file=trim(datadir)//'/'//trim(arg), status='REPLACE')
-        call dump_block_avg(just_header=.TRUE.)
-        Vstep=0.01*minval(V)
-        xstep = 3.0/bl
-    end if
 
     U0 = total_energy(bl)
 
