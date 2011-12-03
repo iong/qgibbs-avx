@@ -105,8 +105,8 @@ program qgibbs
         xstep = 3.0/bl
     end if
 
-    U0(1) = total_energy(rs(:,1:N(1), 1), bl(1), beta, deBoer)
-    U0(2) = total_energy(rs(:,1:N(2), 2), bl(2), beta, deBoer)
+    U0(1) = total_energy(rs(:,:N(1), 1), bl(1), beta, deBoer)
+    U0(2) = total_energy(rs(:,:N(2), 2), bl(2), beta, deBoer)
 
     call reset_averages()
     do
@@ -238,7 +238,7 @@ contains
         else
             rs(:,j,ibox) = rsn 
 
-            U0new = total_energy(rs(:,1:N(ibox), ibox), bl(ibox), beta, deBoer)
+            U0new = total_energy(rs(:,:N(ibox), ibox), bl(ibox), beta, deBoer)
 
             p = exp(-beta * sum(U0new(1:2) - U0(1:2)) )
         end if
@@ -289,8 +289,8 @@ contains
         N(isrc) = N(isrc) - 1
         N(idest) = N(idest) + 1
 
-        U0new(1) = total_energy(rs(:,1:N(1), 1), bl(1), beta, deBoer)
-        U0new(2) = total_energy(rs(:,1:N(2), 2), bl(2), beta, deBoer)
+        U0new(1) = total_energy(rs(:,:N(1), 1), bl(1), beta, deBoer)
+        U0new(2) = total_energy(rs(:,:N(2), 2), bl(2), beta, deBoer)
 
         pacc = pacc0 * exp( - beta * sum(U0new(1:2) - U0(1:2)) )
         mum(idest) = mum(idest) + V(idest)/(VdeBroglie * N(idest)) * &
@@ -325,8 +325,8 @@ contains
         ! ensure bl > 5\sigma
         if (minval(bln) < 5.0) return
 
-        U0new(1) = total_energy(rs(:,1:N(1), 1), bln(1), beta, deBoer)
-        U0new(2) = total_energy(rs(:,1:N(2), 2), bln(2), beta, deBoer)
+        U0new(1) = total_energy(rs(:,:N(1), 1), bln(1), beta, deBoer)
+        U0new(2) = total_energy(rs(:,:N(2), 2), bln(2), beta, deBoer)
 
         logp = sum ( -beta * (U0new(1:2) - U0(1:2)) + real(N)*(log(Vn/V)) )
         call random_number(rn)

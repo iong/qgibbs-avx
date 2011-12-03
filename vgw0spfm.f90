@@ -1,4 +1,4 @@
-SUBROUTINE vgw0spfm(Q0, BL_, beta, Ueff, rt, scale2bl)
+SUBROUTINE vgw0spfm(Q0, BL_, beta, Ueff, scale2bl, rt)
     IMPLICIT NONE
     double precision, intent(in) :: Q0(:,:), beta, BL_
     double precision, intent(out) :: Ueff
