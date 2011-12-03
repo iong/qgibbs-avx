@@ -221,7 +221,7 @@ contains
         implicit none
         integer, intent(in) :: jin
         integer, parameter :: nstepcheck=200
-        real*8 :: rso(3), rsn(3), dr(3), p, U0new(4)
+        real*8 :: rso(3), rsn(3), dr(3), p, U0new
         integer :: ibox, j
 
         ibox = 1
@@ -246,13 +246,13 @@ contains
 
             U0new = total_energy(rs(:,:N(ibox), ibox), bl(ibox), beta, deBoer)
 
-            p = exp(-beta * sum(U0new(1:2) - U0(1:2)) )
+            p = exp(-beta * (U0new - U0(ibox)) )
         end if
 
         call random_number(rn)
         if (p>rn) then
             nxacc(ibox) = nxacc(ibox)  + 1
-            U0 = U0new
+            U0(ibox) = U0new
         else
             rs(:, j, ibox) = rso
         end if
