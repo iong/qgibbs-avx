@@ -6,7 +6,8 @@ SUBROUTINE vgw0spfm(Q0, BL_, beta, Ueff, rt)
     real*8 :: LOGDET, logrho, TSTOP, start_time, stop_time, T
     integer :: i, ncalls
 
-    double precision, allocatable :: Y(:), RWORK(:), YP(:), ATOL(:)
+    double precision, allocatable, target :: Y(:)
+    double precision, allocatable :: RWORK(:), YP(:), ATOL(:)
     integer, allocatable :: IWORK(:)
 
     integer :: NEQ, ITOL, ITASK, IOPT, MF, ISTATE, LRW, LIW
@@ -100,7 +101,8 @@ SUBROUTINE vgw0spfmgs(Q0, BL_, TAUMAX, Havg, rt, logfd, cfgname)
     real*8 :: LOGDET, logrho(2), dbeta, TSTOP, start_time, stop_time, T
     integer :: i, ncalls, nsteps
 
-    double precision, allocatable :: Y(:), RWORK(:), YP(:), ATOL(:)
+    double precision, allocatable, target :: Y(:)
+    double precision, allocatable :: RWORK(:), YP(:), ATOL(:)
     integer, allocatable :: IWORK(:)
 
     integer :: NEQ, ITOL, ITASK, IOPT, MF, ISTATE, LRW, LIW
