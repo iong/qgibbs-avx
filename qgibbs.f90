@@ -95,6 +95,7 @@ program qgibbs
             open(logfd,file=trim(logfile), status='OLD', position='APPEND')
         else
             open(logfd,file=trim(logfile), status='NEW')
+            call dump_block_avg(just_header=.TRUE.)
         end if
     else
         open(logfd,file=trim(logfile), status='REPLACE')
