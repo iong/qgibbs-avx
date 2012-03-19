@@ -86,9 +86,7 @@ program qgibbs
     write(39,NML=input_parameters)
     close(39)
 
-    write(arg, '("qgibbs_kT=",F5.2,".dat")') kT
-    call replace_char(arg, ' ', '0')
-    logfile = trim(datadir)// '/' // arg
+    logfile = trim(datadir)// '/block_average.dat'
     if (restart) then
         inquire(file=trim(logfile), EXIST=oldlog)
         if (oldlog) then
