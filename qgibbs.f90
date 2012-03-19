@@ -11,7 +11,7 @@ program qgibbs
     integer :: nswapacc = 0, nmum(2)
     integer :: nxtrials(2)=0, nxaccsum(2) = 0, nxacc(2)=0, nvoltrials=0, nvolacc=0
     integer :: imc=1, NMC=15000000, jmc, Nequil=100000, mcblen=10000, ib, NMCstart
-    integer :: logfd=31
+    integer :: logfd=31, swapfd=32
     character(LEN=256) :: arg, datadir, logfile
     logical :: restart = .FALSE., oldlog
     real*8 :: rn
@@ -104,6 +104,8 @@ program qgibbs
         xstep = 3.0/bl
     end if
 
+    open(swapfd, file=trim(datadir)// '/swap.dat')
+
     Nvol = 1!minval(N)/20
 
     beta = 1.0/kT
@@ -163,6 +165,7 @@ program qgibbs
     enddo
 
     close(logfd)
+    close(swapfd)
 
 contains
 
@@ -310,6 +313,7 @@ contains
             !write (*,'(4G15.6,F6.4)') U0new(1:2), U0(1:2), pacc
             nswapacc = nswapacc + 1
             U0 = U0new
+            write (swapfd, '(3I10)') imc, N
         else
             N(isrc) = N(isrc) + 1
             N(idest) = N(idest) - 1
