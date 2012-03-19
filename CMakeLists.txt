@@ -1,45 +1,42 @@
 cmake_minimum_required(VERSION 2.8)
 
-if (NOT DEFINED ENV{FC})
-    message(STATUS "NOT DEFINED ENV{FC}")
-    set(ENV{CC} icc)
-    set(ENV{FC} ifort)
-endif()
+# Change the default behavior by setting the environment variables CC, FC and
+# BLA_VENDOR
+# CC: icc, gcc, pgcc, etc.
+# FC: ifort, gfortran, pgf90 etc.
+# BLA_VENDOR: Intel10_lp64, ACML_MP, ACML_FM4_MP, ACML, etc.
+set(CMAKE_C_COMPILER_INIT "icc")
+set(CMAKE_Fortran_COMPILER_INIT "ifort")
+set(BLA_VENDOR "mkl_parallel")
+
 
 PROJECT(qgibbs C Fortran)
 
 if (CMAKE_Fortran_COMPILER_ID STREQUAL Intel)
 
-    set(MKL_LIBRARIES -mkl=parallel)
-    set(LAPACK_LIBRARIES -mkl=sequential)
-    set(CMAKE_Fortran_FLAGS_RELEASE "-O3 -xHost -ipo -fpp")
-    set(CMAKE_Fortran_FLAGS_DEBUG "-fpe0 -traceback -check all -ftrapuv -warn unused -O0 -g -fpp")
-    set(CMAKE_Fortran_FLAGS_RELWITHDEBINFO "-O1 -g -fpp")
+    set(CMAKE_Fortran_FLAGS "-heap-arrays")
+    set(CMAKE_Fortran_FLAGS_RELEASE "-O3 -xHost -ipo")
     set(CMAKE_C_FLAGS_RELEASE "-O3 -xHost -ipo")
 
-elseif(CMAKE_Fortran_COMPILER_ID STREQUAL GNU)
+    set(CMAKE_Fortran_FLAGS_DEBUG "-fpe0 -traceback -ftrapuv -check all  -warn unused -O0 -g")
+    set(CMAKE_Fortran_FLAGS_RELWITHDEBINFO "-O1 -g -traceback -ftrapuv")
+    set(CMAKE_C_FLAGS_RELWITHDEBINFO "-O1 -g")
 
-        set(CMAKE_Fortran_FLAGS_RELEASE "-O3 -fimplicit-none")
-        set(CMAKE_Fortran_FLAGS_DEBUG "-fbounds-check -ffpe-trap=invalid,zero,overflow,denormal -fimplicit-none -O0 -g")
-        set(CMAKE_C_FLAGS_RELEASE "-O3")
+elseif(CMAKE_Fortran_COMPILER_ID STREQUAL GNU)
+    set(CMAKE_Fortran_FLAGS "-fimplicit-none")
+
+    set(CMAKE_Fortran_FLAGS_DEBUG "-fbounds-check -ffpe-trap=invalid,zero,overflow,denormal -fimplicit-none -O0 -g")
 
 elseif(CMAKE_Fortran_COMPILER_ID STREQUAL PGI OR CMAKE_C_COMPILER_ID STREQUAL PGI)
-
-        set(CMAKE_Fortran_FLAGS_RELEASE "-fast")
-        set(CMAKE_Fortran_FLAGS_DEBUG "-O0 -g -Ktrap=fp -Mbounds")
-        set(CMAKE_C_FLAGS_RELEASE "-fast")
-
+        set(CMAKE_Fortran_FLAGS_DEBUG "-g -Ktrap=fp -traceback")
 endif()
 
-include(FindMKL.cmake)
-
-if (NOT DEFINED LAPACK_LIBRARIES)
-	find_package(LAPACK REQUIRED)
-endif()
+set(BLA_STATIC TRUE)
+include(FindBLAS2.cmake)
 
 include(FindCHOLMOD.cmake)
 
-set(CMAKE_Fortran_MODULE_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
+#set(CMAKE_Fortran_MODULE_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
 
 if (APPLE)
     set(LINK_FLAGS -Wl,-no_pie)
@@ -50,9 +47,9 @@ endif()
 # Quantum Gibbs with VGW-SP
 ADD_EXECUTABLE(qgibbs utils.f90 dlsode.f vgw.f90 total_energy_vgw.f90 qgibbs.f90)
 
-target_link_libraries(qgibbs ${LAPACK_LIBRARIES})
-if (LAPACK_LINKER_FLAGS)
-    set_target_properties(qgibbs PROPERTIES LINK_FLAGS ${LAPACK_LINKER_FLAGS})
+target_link_libraries(qgibbs ${BLAS_LIBRARIES})
+if (BLAS_LINKER_FLAGS)
+    set_target_properties(qgibbs PROPERTIES LINK_FLAGS ${BLAS_LINKER_FLAGS})
 endif()
 
 if(CHOLMOD_LIBRARIES AND MKL_LIBRARIES)
