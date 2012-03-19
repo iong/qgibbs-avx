@@ -21,5 +21,6 @@ subroutine interaction_lists(Q)
         NNB(i) = NN
     enddo
 !$OMP END DO
+    NNB(N) = 0
     nnbmax = maxval(nnb)
 end subroutine interaction_lists
