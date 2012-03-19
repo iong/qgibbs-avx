@@ -9,7 +9,7 @@ program qgibbs
     real*8, allocatable :: rs(:,:, :), mcblock(:,:)
     integer :: Ntot, N(2), Nswap=0, Nvol
     integer :: nswapacc = 0, nmum(2)
-    integer :: nxtrials(2)=0, nxacc(2)=0, nvoltrials=0, nvolacc=0
+    integer :: nxtrials(2)=0, nxaccsum(2) = 0, nxacc(2)=0, nvoltrials=0, nvolacc=0
     integer :: imc=1, NMC=15000000, jmc, Nequil=100000, mcblen=10000, ib, NMCstart
     integer :: logfd=31
     character(LEN=256) :: arg, datadir, logfile
@@ -253,6 +253,7 @@ contains
         call random_number(rn)
         if (p>rn) then
             nxacc(ibox) = nxacc(ibox)  + 1
+            nxaccsum(ibox) = nxaccsum(ibox) + 1
             U0(ibox) = U0new
         else
             rs(:, j, ibox) = rso
@@ -379,6 +380,7 @@ contains
         Nm = 0
         Vm = 0
         nswapacc = 0
+        nxaccsum = 0
         Z = 0
     end subroutine reset_averages
 
@@ -391,7 +393,7 @@ contains
 
         if (present(just_header)) then
             if (just_header) then
-                write(logfd, '("# NMC kT rho1 rho2 mu1 mu2 p1 p2 U1 U2 N1 N2 V1 V2 swapacc mum1 mum2 nmum1 nmum2")')
+                write(logfd, '("# NMC kT rho1 rho2 mu1 mu2 p1 p2 U1 U2 N1 N2 V1 V2 swapacc1 swapacc2 mum1 mum2 nmum1 nmum2")')
                 flush(logfd)
                 return
             end if
@@ -401,9 +403,9 @@ contains
             mu = -kT*log(mum/real(nmum))
         end if
 
-        write(logfd,'(I10, 18(" ", G18.6))') &
+        write(logfd,'(I10, 19(" ", G18.6))') &
              imc, kT, rhom/Z, mu, pm/Z, Um/Z, Nm/Z, Vm/Z,&
-             real(nswapacc*(Ntot+Nvol+Nswap))/(Z*Ntot), mum, nmum
+             real(nswapacc)/real(nxaccsum), mum, nmum
 
         flush(logfd)
 
