@@ -34,7 +34,7 @@ endif()
 set(BLA_STATIC TRUE)
 include(FindBLAS2.cmake)
 
-include(FindCHOLMOD.cmake)
+#include(FindCHOLMOD.cmake)
 
 #set(CMAKE_Fortran_MODULE_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
 
@@ -54,11 +54,11 @@ if (BLAS_LINKER_FLAGS)
     set_target_properties(qgibbs PROPERTIES LINK_FLAGS ${BLAS_LINKER_FLAGS})
 endif()
 
-if(CHOLMOD_LIBRARIES AND MKL_LIBRARIES)
-# Quantum Gibbs with Fast-VGW
-    ADD_EXECUTABLE(qgibbs_fastvgw cholmod_logdet.c utils.f90
-            dlsode.f vgwspfm.f90 total_energy_vgwspfm.f90 qgibbs.f90)
-    set_target_properties(qgibbs_fastvgw PROPERTIES COMPILE_FLAGS "-DVGWSPFM")
-    include_directories(qgibbs_fastvgw ${CHOLMOD_INC})
-    target_link_libraries(qgibbs_fastvgw ${CHOLMOD_LIBRARIES} ${MKL_LIBRARIES})
-endif()
+#if(CHOLMOD_LIBRARIES AND MKL_LIBRARIES)
+## Quantum Gibbs with Fast-VGW
+#    ADD_EXECUTABLE(qgibbs_fastvgw cholmod_logdet.c utils.f90
+#            dlsode.f vgwspfm.f90 total_energy_vgwspfm.f90 qgibbs.f90)
+#    set_target_properties(qgibbs_fastvgw PROPERTIES COMPILE_FLAGS "-DVGWSPFM")
+#    include_directories(qgibbs_fastvgw ${CHOLMOD_INC})
+#    target_link_libraries(qgibbs_fastvgw ${CHOLMOD_LIBRARIES} ${MKL_LIBRARIES})
+#endif()
