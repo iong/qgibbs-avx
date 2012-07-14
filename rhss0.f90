@@ -57,9 +57,9 @@ SUBROUTINE RHSS0(NEQ, T, Y, YP)
             call pdetminvm_sg(AG(1:NN1,:), invDETAG, Z)
             Z(1:NN1,:) = - LJA(IG)**2 * Z(1:NN1,:)
 
-            Z(1:NN1,1)=LJA(IG)+Z(1:NN1,1)
-            Z(1:NN1,4)=LJA(IG)+Z(1:NN1,4)
-            Z(1:NN1,6)=LJA(IG)+Z(1:NN1,6)
+            Z(1:NN1,1)=LJA(IG) + Z(1:NN1,1)
+            Z(1:NN1,4)=LJA(IG) + Z(1:NN1,4)
+            Z(1:NN1,6)=LJA(IG) + Z(1:NN1,6)
 
             !Zq = matmul(Z, Q12) ! R = -2.0*Zq
             ZQ(1:NN1,1) = Z(1:NN1,1)*x12(1:NN1) + Z(1:NN1,2) * y12(1:NN1) + Z(1:NN1,3)*z12(1:NN1)
