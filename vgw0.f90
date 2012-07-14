@@ -11,6 +11,7 @@ SUBROUTINE vgw0(Q0, BL_, beta,Ueff, rt)
 
     integer :: NEQ, ITOL, ITASK, IOPT, MF, ISTATE, LRW, LIW
     double precision :: RTOL
+    double precision, pointer, dimension(:, :) :: G
 
     Natom = size(Q0, 2)
     BL = BL_
@@ -45,17 +46,17 @@ SUBROUTINE vgw0(Q0, BL_, beta,Ueff, rt)
     
     T = 0
     y = 0d0
-    y(1:3*Natom) = reshape(Q0, (/ 3*Natom /) )
+    y(1:Natom) = Q0(1,:)
+    y(Natom+1:2*Natom) = Q0(2,:)
+    y(2*Natom+1:3*Natom) = Q0(3,:)
 
     call cpu_time(start_time)
     TSTOP = 0.5d0*beta
     CALL DLSODE(RHSS0,NEQ,Y,T,TSTOP,ITOL,RTOL,ATOL,ITASK,ISTATE,IOPT,&
         RWORK,LRW,IWORK,LIW,JAC,MF)
 
-    LOGDET=0d0
-    DO j=1,Natom
-        LOGDET = LOGDET + LOG( DETM_S(y(3*Natom + 6*j - 5 : 3*Natom + 6*j)) )
-    ENDDO
+
+    LOGDET=sum(log(pdetm_s(reshape(y(3*Natom+1:9*Natom), (/Natom, 6/)))))
     call cpu_time(stop_time)
 
     logrho = 2.0*Natom*y(NEQ) - 0.5*LOGDET - 1.5*Natom*log(4.0*M_PI)

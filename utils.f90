@@ -1,5 +1,6 @@
 module utils
     double precision :: M_PI = 3.14159265358979323846264338327950288d0
+    integer, parameter :: RP = 8
     interface min_image
         module procedure min_image1
         module procedure min_image2
@@ -137,6 +138,31 @@ subroutine detminvm_sg(A, DETA, INVA)
     INVA = INVA * INVDET
 end subroutine detminvm_sg
 
+subroutine pdetminvm_sg(A, DETINVA, INVA)
+    implicit none
+    real(RP), intent(in) :: A(:,:)
+    real(RP), intent(out) :: DETINVA(:), INVA(:,:)
+    real(RP) :: DETA(size(A, 1))
+    integer :: I, N
+
+    N = size(A, 1)
+
+    INVA(1:N,1) =  A(:,4)*A(:,6) - A(:,5)**2
+    INVA(1:N,2) = -A(:,2)*A(:,6) + A(:,3)*A(:,5)
+    INVA(1:N,3) =  A(:,2)*A(:,5) - A(:,3)*A(:,4)
+    INVA(1:N,4) =  A(:,1)*A(:,6) - A(:,3)**2
+    INVA(1:N,5) = -A(:,1)*A(:,5) + A(:,3)*A(:,2)
+    INVA(1:N,6) =  A(:,1)*A(:,4) - A(:,2)**2
+
+    DETA = sum(INVA(1:N,1:3)*A(:,1:3), 2)
+    DETINVA(1:N) = 1.0d0/DETA
+    do I=1,6
+        INVA(1:N,I) = INVA(1:N,I) * DETINVA(1:N)
+    end do
+end subroutine pdetminvm_sg
+
+
+
 subroutine detminvm_ss(A, DETA, INVA)
     implicit none
     double precision, intent(in) :: A(6)
@@ -175,6 +201,17 @@ pure function detm_s(A)
           + ( A(2)*A(5) - A(3)*A(4) ) * A(3)
 end function detm_s
 
+pure function pdetm_s(A)
+    implicit none
+    double precision, intent(in) :: A(:,:)
+    double precision :: PDETM_S(size(A, 1))
+
+    PDETM_S = (A(:,4)*A(:,6) - A(:,5)**2) * A(:,1)&
+          + ( -A(:,2)*A(:,6) + A(:,3)*A(:,5) ) * A(:,2) &
+          + ( A(:,2)*A(:,5) - A(:,3)*A(:,4) ) * A(:,3)
+end function pdetm_s
+
+
 function outer_product(l, r) result(m)
     double precision, intent(in) :: l(:), r(:)
     double precision :: m(size(l), size(r))
@@ -197,26 +234,32 @@ end function outer_product3
 
 pure function min_image1(r)
     implicit none
-    double precision, intent(in) :: r(3)
-    double precision :: min_image1(3)
+    real(RP), intent(in) :: r(:)
+    real(RP) :: min_image1(size(r))
     integer :: i
 
-    do i=1,3
-        if (r(i) > 0.5) then
-            min_image1(i) = r(i) - 1.0
-        elseif (r(i) < -0.5) then
-            min_image1(i) = r(i) + 1.0
-        else
-            min_image1(i) = r(i)
-        end if
-    end do
+    where (abs(r) > 0.5)
+            min_image1 = r - sign(1.0_RP, r)
+    elsewhere
+            min_image1 = r
+    endwhere
+
+!    do i=1,3
+!        if (r(i) > 0.5) then
+!            min_image1(i) = r(i) - 1.0
+!        elseif (r(i) < -0.5) then
+!            min_image1(i) = r(i) + 1.0
+!        else
+!            min_image1(i) = r(i)
+!        end if
+!    end do
 end function
 
 pure function min_image2(r, bl)
     implicit none
-    double precision, intent(in) :: r(3), bl
-    double precision :: min_image2(3)
-    double precision :: bl2
+    real(RP), intent(in) :: r(:), bl
+    real(RP) :: min_image2(size(r))
+    real(RP) :: bl2
 
     bl2=0.5d0*bl
     where (abs(r) > bl2)

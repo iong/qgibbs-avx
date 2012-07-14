@@ -11,10 +11,10 @@ module vgw
     integer, allocatable :: NBIDX(:,:), NNB(:)
     
     real*8 :: T, gama, gamap, U, TRUXXG
-    real*8, allocatable :: Q(:,:), G(:,:,:), Qnk(:,:,:), gamak(:,:), &
+    real*8, allocatable :: Q(:,:), G(:,:), Qnk(:,:,:), gamak(:,:), &
                             QP(:,:), GP(:,:,:)
                             
-    real*8, allocatable :: UPV(:,:), UPM(:,:,:)
+    real*8, allocatable :: UPV(:,:), UPM(:,:)
     
     real*8 :: invmass, RC, mass, dt0, dtmax, dtmin, vgw_atol(3)
     logical :: finished
@@ -30,8 +30,8 @@ subroutine vgwinit(Nmax_, species, M, rcutoff, massx)
     real*8, intent(in), optional :: M, rcutoff, massx
 
     Nmax = Nmax_
-    allocate(NNB(Nmax), NBIDX(Nmax,Nmax), upv(3,Nmax), &
-        upm(3,3,Nmax), g(3,3,Nmax))
+    allocate(NNB(Nmax), NBIDX(Nmax,Nmax), upv(Nmax,3), &
+        upm(Nmax, 6), g(Nmax, 6))
     
     
 include 'species.f90'

@@ -1,7 +1,6 @@
 program qgibbs
-    use utils, only: min_image, replace_char
+    use utils, only: min_image, replace_char, M_PI
     implicit none
-    real*8, parameter :: M_PI = 3.141592653d0
     real*8 :: rhcore
     real*8 :: Vtot, V(2), bl(2), kT, beta, U0(4), xstep(2), Vstep
     double precision :: VdeBroglie, deBoer

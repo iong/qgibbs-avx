@@ -46,8 +46,10 @@ endif()
 
 # Quantum Gibbs with VGW-SP
 ADD_EXECUTABLE(qgibbs utils.f90 dlsode.f vgw.f90 total_energy_vgw.f90 qgibbs.f90)
+ADD_EXECUTABLE(cluster utils.f90 dlsode.f vgw.f90 vgwref.f90 xyz.f90 cluster.f90)
 
 target_link_libraries(qgibbs ${BLAS_LIBRARIES})
+target_link_libraries(cluster ${LAPACK_LIBRARIES})
 if (BLAS_LINKER_FLAGS)
     set_target_properties(qgibbs PROPERTIES LINK_FLAGS ${BLAS_LINKER_FLAGS})
 endif()
