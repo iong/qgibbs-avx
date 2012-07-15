@@ -362,7 +362,6 @@ SUBROUTINE RHSS0(NEQ, T, Y, YP)
     end do
 
     yp(NEQ) = -(0.25d0*TRUXXG + U)/real(Natom)
-    print *, maxval(abs(yp(1:9*Natom))), yp(NEQ)
     deallocate(UX,UXX, GC, QC)
 END SUBROUTINE RHSS0
 

@@ -27,7 +27,6 @@ SUBROUTINE RHSS0(NEQ, T, Y, YP)
         return
     end if
 
-    print *, t
     do J=1,6
         G(J)%p => y((3+J-1)*Natom + 1 : (3 + J) * Natom)
     end do
@@ -127,8 +126,6 @@ SUBROUTINE RHSS0(NEQ, T, Y, YP)
 !    end do
 
     yp(NEQ) = -(0.25_RP*TRUXXG + U)/real(Natom)
-    write(68,'(E15.8," ",$)') y
-    write(69,'(E15.8," ",$)') yp
 END SUBROUTINE RHSS0
 
 !    11 22 33
@@ -179,8 +176,6 @@ subroutine rhss_zero_time(NEQ, y, yp)
 
     yp = 0.0_RP
 
-    print *, 'yupee'
-
     yp(3*Natom + 1 : 4*Natom) = invmass
     yp(6*Natom + 1 : 7*Natom) = invmass
     yp(8*Natom + 1 : 9*Natom) = invmass
@@ -190,8 +185,8 @@ subroutine rhss_zero_time(NEQ, y, yp)
     DO I=1,Natom-1
         if (nnb(i) == 0) cycle
         rsq(1:NNB(i)) = min_image(y(nbidx(1:NNB(i),i)) - y(i), bl)**2 &
-            + min_image(y(Natom + nbidx(1:NNB(i),i)) - y(Natom + i), bl) &
-            + min_image(y(2*Natom + nbidx(1:NNB(i),i)) - y(2*Natom + i), bl)
+            + min_image(y(Natom + nbidx(1:NNB(i),i)) - y(Natom + i), bl)**2 &
+            + min_image(y(2*Natom + nbidx(1:NNB(i),i)) - y(2*Natom + i), bl)**2
         DO J=1,NGAUSS
                 U = U + LJC(J)*sum(EXP(-LJA(J)*rsq(1:NNB(i))))
         END DO
