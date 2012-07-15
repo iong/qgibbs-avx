@@ -25,7 +25,7 @@ if (CMAKE_Fortran_COMPILER_ID STREQUAL Intel)
 elseif(CMAKE_Fortran_COMPILER_ID STREQUAL GNU)
     set(CMAKE_Fortran_FLAGS "-fimplicit-none")
 
-    set(CMAKE_Fortran_FLAGS_DEBUG "-fbounds-check -ffpe-trap=invalid,zero,overflow,denormal -fimplicit-none -O0 -g")
+    set(CMAKE_Fortran_FLAGS_DEBUG "-fbacktrace -fbounds-check -ffpe-trap=invalid,zero,overflow,denormal -fimplicit-none -O0 -g")
 
 elseif(CMAKE_Fortran_COMPILER_ID STREQUAL PGI OR CMAKE_C_COMPILER_ID STREQUAL PGI)
         set(CMAKE_Fortran_FLAGS_DEBUG "-g -Ktrap=fp -traceback")
