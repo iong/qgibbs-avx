@@ -155,11 +155,13 @@ END SUBROUTINE RHSS0
 !    32 54 65
 !    33 55 66
 subroutine pmm_sg(A, B, C)
-    real(RP), intent(in) :: A(:,:), B(size(A,1),6)
-    real(RP), intent(out) :: C(size(A,1),6)
+    double precision, intent(in) :: A(:,:), B(size(A,1),6)
+    double precision, intent(out) :: C(size(A,1),6)
 
-    real(RP), dimension(size(A, 1)) :: x22, x33, x53, x55
+    double precision, dimension(size(A, 1)) :: x22, x33, x53, x55
     
+    !call atom_range(i1, i2)
+
     x22 = A(:,2) * B(:,2)
     x33 = A(:,3) * B(:,3)
     x53 = A(:,5) * B(:,3)
@@ -171,7 +173,6 @@ subroutine pmm_sg(A, B, C)
     C(:,5) = A(:,3)*B(:,2) + A(:,5)*B(:,4) + A(:,6)*B(:,5)
     C(:,6) = x33 + x55 + A(:,6)*B(:,6)
 end subroutine
-
 
 function matmul_sgs(A, B) result (C)
     double precision :: A(3,3), B(3,3)
@@ -194,13 +195,13 @@ subroutine rhss_zero_time(NEQ, y, yp)
     double precision :: rsq(nnbmax)
     integer :: i, j
 
-    yp = 0.0_RP
+    yp = 0.0d0
 
     yp(3*Natom + 1 : 4*Natom) = invmass
     yp(6*Natom + 1 : 7*Natom) = invmass
     yp(8*Natom + 1 : 9*Natom) = invmass
 
-    U=0.0_RP
+    U=0.0d0
 
     DO I=1,Natom-1
         if (nnb(i) == 0) cycle
