@@ -26,7 +26,7 @@ double precision function gaussran(sigma, x0) result(y)
         if (x(1) /= 0.0d0) exit
     enddo
     !   write (*,*) x
-    y = sqrt( -2.0 * log(x(1))) * cos(2*M_PI*x(2))
+    y = sqrt( -2.0 * log(x(1))) * cos(2.0*M_PI*x(2))
 
     y = y*sigma + x0
 end function gaussran
