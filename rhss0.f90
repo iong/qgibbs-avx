@@ -11,18 +11,19 @@ SUBROUTINE RHSS0(NEQ, T, Y, YP)
     real(RP), dimension(nnbmax) :: x12, y12, z12, DETA, invDETAG, qZq, expav, v0
     real(RP), dimension(nnbmax, 3) :: Zq, UX0
     real(RP), dimension(nnbmax, 6) :: GC, A, AG, Z, UXX0
-    real*8 :: Ulocal
-    double precision :: GU(Natom, 6)
+    real(8) :: Ulocal, GU(Natom, 6), UPV1(3), UPM1(6)
     type parray
-        double precision, pointer :: p(:)
+        real(8), pointer :: p(:)
     end type
     type(parray) :: G(6), GUG(6)
 
-    UPM = 0.0_RP
-    UPV = 0.0_RP
-    Ulocal = 0.0_RP
 
-    if (y(3*Natom+1) == 0.0_RP) then
+    UPM = 0.0d0
+    UPV = 0.0d0
+
+    Ulocal = 0.0
+
+    if (y(3*Natom+1) == 0.0) then
         call rhss_zero_time(NEQ, y, yp)
         return
     end if
