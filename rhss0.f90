@@ -30,7 +30,8 @@ SUBROUTINE RHSS0(NEQ, T, Y, YP)
     do J=1,6
         G(J)%p => y((3+J-1)*Natom + 1 : (3 + J) * Natom)
     end do
-        
+!$omp parallel private(x12, y12, z12, DETA, invDETAG, qZq, expav, v0, Zq, GC, A, AG, Z, UX0, UXX0, UPV1, UPM1, J, IG, NN1)
+!$omp do schedule(dynamic) reduction(+:Ulocal,UPV, UPM)
     do I1=1,Natom-1
         NN1 = NNB(I1)
         if (NN1 == 0) cycle
@@ -113,15 +114,21 @@ SUBROUTINE RHSS0(NEQ, T, Y, YP)
         UPV(I1,:) = UPV1
         UPM(I1,:) = UPM1
     ENDDO ! I
+!$omp end do
 
+    U = Ulocal
+!$omp workshare
     TRUXXG =  sum(UPM(:,1)*G(1)%p) + 2*sum(UPM(:,2)*G(2)%p) &
         + 2.0*sum(UPM(:,3)*G(3)%p) +   sum(UPM(:,4)*G(4)%p) &
         + 2.0*sum(UPM(:,5)*G(5)%p) +   sum(UPM(:,6)*G(6)%p)
-    U = Ulocal
 
     yp(        1:  Natom) = - G(1)%p*UPV(:,1) - G(2)%p*UPV(:,2) - G(3)%p*UPV(:,3)
     yp(  Natom+1:2*Natom) = - G(2)%p*UPV(:,1) - G(4)%p*UPV(:,2) - G(5)%p*UPV(:,3)
     yp(2*Natom+1:3*Natom) = - G(3)%p*UPV(:,1) - G(5)%p*UPV(:,2) - G(6)%p*UPV(:,3)
+!$omp end workshare
+!$omp end parallel
+
+    U = Ulocal
 
     do J=1,6
         GUG(J)%p => yp(3*Natom + (J-1)*Natom + 1 : 3*Natom + J*Natom)
@@ -144,8 +151,9 @@ SUBROUTINE RHSS0(NEQ, T, Y, YP)
 !            yp(k4 : k4 + 2 ) = - matmul(transpose(Qnk(:,:,i1)), UPV(:,I1))
 !        end if
 !    end do
-
+!! !$omp single
     yp(NEQ) = -(0.25_RP*TRUXXG + U)/real(Natom)
+!! !$omp end single
 END SUBROUTINE RHSS0
 
 !    11 22 33

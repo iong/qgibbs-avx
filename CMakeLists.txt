@@ -13,8 +13,8 @@ set(BLA_VENDOR "mkl_parallel")
 PROJECT(qgibbs C Fortran)
 
 if (CMAKE_Fortran_COMPILER_ID STREQUAL Intel)
-
-    set(CMAKE_Fortran_FLAGS "-heap-arrays")
+    set(CMAKE_C_FLAGS "-openmp")
+    set(CMAKE_Fortran_FLAGS "-openmp  -heap-arrays")
     set(CMAKE_Fortran_FLAGS_RELEASE "-O3 -xHost -ipo")
     set(CMAKE_C_FLAGS_RELEASE "-O3 -xHost -ipo")
 

@@ -6,7 +6,7 @@ subroutine interaction_lists(Q)
 
     N = size(Q, 2)
     rc2=rc**2
-
+!$omp parallel
 !$OMP DO SCHEDULE(DYNAMIC) PRIVATE(I, J, QIJ, RSQ)
     do I=1,N-1
         NN = 0
@@ -20,8 +20,9 @@ subroutine interaction_lists(Q)
         enddo
         NNB(i) = NN
     enddo
-    NNB(N) = 0
-!$OMP END DO
+!$OMP ENDDO
+!$omp end parallel
+
     NNB(N) = 0
     nnbmax = maxval(nnb)
 end subroutine interaction_lists
