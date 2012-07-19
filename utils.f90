@@ -154,8 +154,7 @@ subroutine pdetminvm_sg(A, DETINVA, INVA)
     INVA(1:N,5) = -A(:,1)*A(:,5) + A(:,3)*A(:,2)
     INVA(1:N,6) =  A(:,1)*A(:,4) - A(:,2)**2
 
-    DETA = sum(INVA(1:N,1:3)*A(:,1:3), 2)
-    DETINVA(1:N) = 1.0d0/DETA
+    DETINVA(1:N) = 1.0_RP/(INVA(1:N,1)*A(:,1) +INVA(1:N,2)*A(:,2) +INVA(1:N,3)*A(:,3))
     do I=1,6
         INVA(1:N,I) = INVA(1:N,I) * DETINVA(1:N)
     end do
