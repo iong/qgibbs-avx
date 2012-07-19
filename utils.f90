@@ -234,12 +234,12 @@ end function outer_product3
 
 pure function min_image1(r)
     implicit none
-    real(RP), intent(in) :: r(:)
-    real(RP) :: min_image1(size(r))
+    real(8), intent(in) :: r(:)
+    real(8) :: min_image1(size(r))
     integer :: i
 
     where (abs(r) > 0.5)
-            min_image1 = r - sign(1.0_RP, r)
+            min_image1 = r - sign(1.0d0, r)
     elsewhere
             min_image1 = r
     endwhere
@@ -257,9 +257,9 @@ end function
 
 pure function min_image2(r, bl)
     implicit none
-    real(RP), intent(in) :: r(:), bl
-    real(RP) :: min_image2(size(r))
-    real(RP) :: bl2
+    real(8), intent(in) :: r(:), bl
+    real(8) :: min_image2(size(r))
+    real(8) :: bl2
 
     bl2=0.5d0*bl
     where (abs(r) > bl2)
