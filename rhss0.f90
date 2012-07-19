@@ -46,16 +46,18 @@ SUBROUTINE RHSS0(NEQ, T, Y, YP)
 
         call pdetminvm_sg(GC(1:NN1,:), DETA, A)
 
-        UX0 = 0.0_RP
-        UXX0 = 0.0_RP
         DO IG=1,NGAUSS      ! BEGIN SUMMATION OVER GAUSSIANS
-            AG = A
-            AG(1:NN1,1)=LJA(IG)+AG(1:NN1,1)
-            AG(1:NN1,4)=LJA(IG)+AG(1:NN1,4)
-            AG(1:NN1,6)=LJA(IG)+AG(1:NN1,6)
+            AG(1:NN1,1) = LJA(IG) + A(1:NN1,1)
+            AG(1:NN1,2) =           A(1:NN1,2)
+            AG(1:NN1,3) =           A(1:NN1,3)
+            AG(1:NN1,4) = LJA(IG) + A(1:NN1,4)
+            AG(1:NN1,5) =           A(1:NN1,5)
+            AG(1:NN1,6) = LJA(IG) + A(1:NN1,6)
 
             call pdetminvm_sg(AG(1:NN1,:), invDETAG, Z)
-            Z(1:NN1,:) = - LJA(IG)**2 * Z(1:NN1,:)
+            do J=1,6
+                Z(1:NN1,J) = - (LJA(IG)**2) * Z(1:NN1,J)
+            end do
 
             Z(1:NN1,1)=LJA(IG) + Z(1:NN1,1)
             Z(1:NN1,4)=LJA(IG) + Z(1:NN1,4)
@@ -70,10 +72,23 @@ SUBROUTINE RHSS0(NEQ, T, Y, YP)
             qZq(1:NN1) = Zq(1:NN1,1)*x12(1:NN1) + Zq(1:NN1,2)*y12(1:NN1) + Zq(1:NN1,3)*z12(1:NN1)
 
             EXPAV(1:NN1)=EXP(-qZq(1:NN1)) * SQRT(DETA(1:NN1)*invDETAG(1:NN1))
-            Ulocal=Ulocal+sum(EXPAV(1:NN1))*LJC(IG)
 
             v0(1:NN1) = 2.0_RP*expav(1:NN1)*LJC(IG)
+            Ulocal=Ulocal + 0.5_RP *sum(v0)
 
+            if (IG == 1) then
+                DO J=1,3
+                    UX0(1:NN1,J) = - v0(1:NN1)*Zq(1:NN1,J)
+                END DO
+
+                UXX0(1:NN1,1) = v0(1:NN1)*(2.0_RP*Zq(1:NN1,1)*Zq(1:NN1,1) - Z(1:NN1,1))
+                UXX0(1:NN1,2) = v0(1:NN1)*(2.0_RP*Zq(1:NN1,2)*Zq(1:NN1,1) - Z(1:NN1,2))
+                UXX0(1:NN1,3) = v0(1:NN1)*(2.0_RP*Zq(1:NN1,3)*Zq(1:NN1,1) - Z(1:NN1,3))
+                UXX0(1:NN1,4) = v0(1:NN1)*(2.0_RP*Zq(1:NN1,2)*Zq(1:NN1,2) - Z(1:NN1,4))
+                UXX0(1:NN1,5) = v0(1:NN1)*(2.0_RP*Zq(1:NN1,3)*Zq(1:NN1,2) - Z(1:NN1,5))
+                UXX0(1:NN1,6) = v0(1:NN1)*(2.0_RP*Zq(1:NN1,3)*Zq(1:NN1,3) - Z(1:NN1,6))
+                cycle
+            end if
             DO J=1,3
                 UX0(1:NN1,J) = UX0(1:NN1,J) - v0(1:NN1)*Zq(1:NN1,J)
             END DO
@@ -87,12 +102,17 @@ SUBROUTINE RHSS0(NEQ, T, Y, YP)
         ENDDO 
 
         ! I2
+        UPV1 = UPV(I1,:)
+        UPM1 = UPM(I1,:)
         do J=1,NN1
-            UPV(I1,:) = UPV(I1,:) + UX0 (J,:)
-            UPM(I1,:) = UPM(I1,:) + UXX0(J,:)
+            UPV1 = UPV1 + UX0 (J,:)
+            UPV(nbidx(J,I1),:) = UPV(nbidx(J,I1),:) - UX0(J,:)
+
+            UPM1 = UPM1 + UXX0(J,:)
+            UPM(nbidx(J,I1),:) = UPM(nbidx(J,I1),:) + UXX0(J,:)
         end do
-        UPV(nbidx(1:NN1,I1),:) = UPV(nbidx(1:NN1,I1),:) - UX0(1:NN1,:)
-        UPM(nbidx(1:NN1,I1),:) = UPM(nbidx(1:NN1,I1),:) + UXX0(1:NN1,:)
+        UPV(I1,:) = UPV1
+        UPM(I1,:) = UPM1
     ENDDO ! I
 
     TRUXXG =  sum(UPM(:,1)*G(1)%p) + 2*sum(UPM(:,2)*G(2)%p) &
