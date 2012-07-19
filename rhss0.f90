@@ -1,13 +1,12 @@
 SUBROUTINE RHSS0(NEQ, T, Y, YP)
     use utils, only: RP
     IMPLICIT NONE
-    integer, intent(in) :: NEQ!, IPAR(:)
+    integer, intent(in) :: NEQ
     double precision, intent(in) :: T
-    double precision, intent(in) , target :: Y(NEQ)!, RPAR(:)
+    double precision, intent(in) , target :: Y(NEQ)
     double precision, intent(out), target :: YP(NEQ)
 
     INTEGER :: J,I1,I2,IG, NN1
-    real(RP) :: G1(6)
     real(RP), dimension(nnbmax) :: x12, y12, z12, DETA, invDETAG, qZq, expav, v0
     real(RP), dimension(nnbmax, 3) :: Zq, UX0
     real(RP), dimension(nnbmax, 6) :: GC, A, AG, Z, UXX0
