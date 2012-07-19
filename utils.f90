@@ -1,6 +1,6 @@
 module utils
     double precision :: M_PI = 3.14159265358979323846264338327950288d0
-    integer, parameter :: RP = 8
+    integer, parameter :: RP = 4
     interface min_image
         module procedure min_image1
         module procedure min_image2
