@@ -48,6 +48,8 @@ endif()
 ADD_EXECUTABLE(qgibbs utils.f90 dlsode.f vgw.f90 index_sort.c total_energy_vgw.f90 qgibbs.f90)
 ADD_EXECUTABLE(cluster utils.f90 dlsode.f vgw.f90 index_sort.c vgwref.f90 xyz.f90 cluster.f90)
 
+add_executable(qsort qsort_test.f90 utils.f90 index_sort.c)
+
 target_link_libraries(qgibbs ${BLAS_LIBRARIES})
 target_link_libraries(cluster ${BLAS_LIBRARIES})
 if (BLAS_LINKER_FLAGS)
