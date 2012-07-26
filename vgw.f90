@@ -2,7 +2,7 @@ module vgw
     use utils
     implicit none
     private
-    public :: vgwinit, get_fx, vgw0, vgwcleanup
+    public :: vgwinit, vgw0, vgwcleanup
     
     integer :: Natom, Nmax, maxthreads
     real*8 :: BL, rfullmatsq
@@ -10,16 +10,18 @@ module vgw
     integer :: NGAUSS
     integer, allocatable :: NBIDX(:,:), NNB(:)
     
-    real*8 :: T, gama, gamap, U, TRUXXG
-    real*8, allocatable :: Q(:,:), G(:,:), Qnk(:,:,:), gamak(:,:), &
-                            QP(:,:), GP(:,:,:)
-                            
+    real*8 :: U, TRUXXG
     real*8, allocatable :: UPV(:,:), UPM(:,:)
     
     real*8 :: invmass, RC, mass, dt0, dtmax, dtmin, vgw_atol(3)
     logical :: finished
     integer :: tid=0, nthr=1, thread_start, thread_stop, nnbmax
 !$OMP THREADPRIVATE(tid, thread_start, thread_stop, nnbmax)
+
+    
+    real(RP), allocatable, dimension(:) :: DETA, invDETAG, qZq, expav, v0
+    real(RP), allocatable, dimension(:, :) :: Zq
+    real(RP), allocatable, dimension(:, :) :: GC, A, AG, Z
 
 contains
 
@@ -30,8 +32,8 @@ subroutine vgwinit(Nmax_, species, M, rcutoff, massx)
     real*8, intent(in), optional :: M, rcutoff, massx
 
     Nmax = Nmax_
-    allocate(NNB(Nmax), NBIDX(Nmax,Nmax), upv(Nmax,3), &
-        upm(Nmax, 6), g(Nmax, 6))
+    allocate(NNB(Nmax), NBIDX(Nmax,Nmax), upv(3, Nmax), &
+        upm(6, Nmax))
     
     
 include 'species.f90'
@@ -39,14 +41,8 @@ end subroutine
 
 
 subroutine vgwcleanup()
-    deallocate(NNB, NBIDX, UPV, UPM, g)
+    deallocate(NNB, NBIDX, UPV, UPM)
 end subroutine
-
-function get_fx() result(fx)
-    real*8 :: fx(3, Natom)
-    fx = - gamak(3,Natom)/T
-end function
-
 
 subroutine unpack_g(y, g)
     double precision, intent(in) :: y(:)

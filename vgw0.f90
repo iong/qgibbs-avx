@@ -3,7 +3,7 @@ SUBROUTINE vgw0(Q0, BL_, beta,Ueff, rt)
     double precision, intent(in) :: Q0(:,:), beta, BL_
     double precision, intent(out) :: Ueff
     double precision, intent(out), optional :: rt
-    real*8 :: LOGDET, logrho, TSTOP, start_time, stop_time
+    real*8 :: LOGDET, logrho, T, TSTOP, start_time, stop_time
     integer :: i, j, ncalls
 
     double precision, allocatable :: Y(:), RWORK(:), YP(:), ATOL(:)
@@ -32,6 +32,10 @@ SUBROUTINE vgw0(Q0, BL_, beta,Ueff, rt)
 
     call       presort_ppc(y(1:Natom), y(Natom+1:2*Natom), y(2*Natom+1:3*Natom), 4)
     call interaction_lists(y(1:Natom), y(Natom+1:2*Natom), y(2*Natom+1:3*Natom))
+
+    allocate(DETA(nnbmax), invDETAG(nnbmax), qZq(nnbmax), expav(nnbmax), v0(nnbmax), &
+          Zq(nnbmax, 3), GC(nnbmax, 6), A(nnbmax, 6), AG(nnbmax, 6), Z(nnbmax, 6) )
+
     ITOL=2
     RTOL=0
     ATOL(1:3*Natom) = vgw_atol(1)
@@ -66,6 +70,7 @@ SUBROUTINE vgw0(Q0, BL_, beta,Ueff, rt)
     !write (*,*) IWORK(11), 'steps,', IWORK(12), ' RHSS calls, logdet =', logdet
 
     deallocate(y, yp, RWORK, IWORK, ATOL)
+    deallocate(DETA, invDETAG, qZq, expav, v0, Zq, GC, A, AG, Z)
 
     Ueff = -logrho/beta
     if (present(rt)) then

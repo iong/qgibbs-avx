@@ -6,32 +6,25 @@ SUBROUTINE RHSS0(NEQ, T, Y, YP)
     double precision, intent(in) , target :: Y(NEQ)
     double precision, intent(out), target :: YP(NEQ)
 
-    INTEGER :: J,I1,I2,IG, NN1
-    real(RP), dimension(nnbmax) :: x12, y12, z12, DETA, invDETAG, qZq, expav, v0
-    real(RP), dimension(nnbmax, 3) :: Zq, UX0
-    real(RP), dimension(nnbmax, 6) :: GC, A, AG, Z, UXX0
-    real(8) :: Ulocal, GU(Natom, 6), UPV1(3), UPM1(6)
-    type parray
-        real(8), pointer :: p(:)
-    end type
-    type(parray) :: G(6), GUG(6)
+    INTEGER :: J,I1,I2,IG, NN1, qidx(3), gidx(6)
+    real(RP), dimension(nnbmax) :: x12, y12, z12
+    real(RP), dimension(nnbmax, 3) :: UX0
+    real(RP), dimension(nnbmax, 6) :: UXX0
 
+    real(8) :: Ulocal, GU(6), GUG(6), QP_(3), UPV1(3), UPM1(6), G(6)
 
     UPM = 0.0d0
     UPV = 0.0d0
 
-    Ulocal = 0.0
+    U = 0d0
 
     if (y(3*Natom+1) == 0.0) then
         call rhss_zero_time(NEQ, y, yp)
         return
     end if
 
-    do J=1,6
-        G(J)%p => y((3+J-1)*Natom + 1 : (3 + J) * Natom)
-    end do
-!$omp parallel private(x12, y12, z12, DETA, invDETAG, qZq, expav, v0, Zq, GC, A, AG, Z, UX0, UXX0, UPV1, UPM1, J, IG, NN1)
-!$omp do schedule(dynamic) reduction(+:Ulocal,UPV, UPM)
+    !$omp parallel private(x12, y12, z12, DETA, invDETAG, qZq, expav, v0, Zq, GC, A, AG, Z, UX0, UXX0, UPV1, UPM1, J, IG, NN1)
+    !$omp do schedule(dynamic) reduction(+:U,UPV, UPM)
     do I1=1,Natom-1
         NN1 = NNB(I1)
         if (NN1 == 0) cycle
@@ -41,120 +34,137 @@ SUBROUTINE RHSS0(NEQ, T, Y, YP)
         z12(1:NN1) = min_image(y(2*Natom + I1) - y(2*Natom + nbidx(1:NN1,I1)), bl)
 
         do J=1,6
-            GC(1:NN1,J) = G(J)%p(nbidx(1:NN1,I1)) + G(J)%p(I1)
+            GC(1:NN1,J) = y((J+2)*Natom + nbidx(1:NN1,I1)) + y((J+2)*Natom + I1)
         end do
 
-        call pdetminvm_sg(GC(1:NN1,:), DETA, A)
+        call stream_kernel(NN1, x12, y12, z12, GC, U, UX0, UXX0)
 
-        DO IG=1,NGAUSS      ! BEGIN SUMMATION OVER GAUSSIANS
-            AG(1:NN1,1) = LJA(IG) + A(1:NN1,1)
-            AG(1:NN1,2) =           A(1:NN1,2)
-            AG(1:NN1,3) =           A(1:NN1,3)
-            AG(1:NN1,4) = LJA(IG) + A(1:NN1,4)
-            AG(1:NN1,5) =           A(1:NN1,5)
-            AG(1:NN1,6) = LJA(IG) + A(1:NN1,6)
+        do J=1,NN1
+            UPV(:,I1) = UPV(:, I1) + UX0 (J,:)
+            UPV(:,nbidx(J,I1)) = UPV(:,nbidx(J,I1)) - UX0(J,:)
 
-            call pdetminvm_sg(AG(1:NN1,:), invDETAG, Z)
-            do J=1,6
-                Z(1:NN1,J) = - (LJA(IG)**2) * Z(1:NN1,J)
-            end do
+            UPM(:,I1) = UPM(:,I1) + UXX0(J,:)
+            UPM(:,nbidx(J,I1)) = UPM(:,nbidx(J,I1)) + UXX0(J,:)
+        end do
+    ENDDO ! I
+    !$omp end do
 
-            Z(1:NN1,1)=LJA(IG) + Z(1:NN1,1)
-            Z(1:NN1,4)=LJA(IG) + Z(1:NN1,4)
-            Z(1:NN1,6)=LJA(IG) + Z(1:NN1,6)
+    TRUXXG = 0d0
+    !$omp do schedule(static) reduction(+:TRUXXG)
+    do i1=1,Natom
+        qidx=   (/ (I1 + J*Natom, J=0,2) /)
+        gidx=   (/ (I1 + J*Natom, J=3,8) /)
 
-            !Zq = matmul(Z, Q12) ! R = -2.0*Zq
-            ZQ(1:NN1,1) = Z(1:NN1,1)*x12(1:NN1) + Z(1:NN1,2) * y12(1:NN1) + Z(1:NN1,3)*z12(1:NN1)
-            ZQ(1:NN1,2) = Z(1:NN1,2)*x12(1:NN1) + Z(1:NN1,4) * y12(1:NN1) + Z(1:NN1,5)*z12(1:NN1)
-            ZQ(1:NN1,3) = Z(1:NN1,3)*x12(1:NN1) + Z(1:NN1,5) * y12(1:NN1) + Z(1:NN1,6)*z12(1:NN1)
+        G = y(gidx)
 
-            !qZq = dot_product(Q12, Zq) 
-            qZq(1:NN1) = Zq(1:NN1,1)*x12(1:NN1) + Zq(1:NN1,2)*y12(1:NN1) + Zq(1:NN1,3)*z12(1:NN1)
+        TRUXXG = TRUXXG +     G(1)*UPM(1,I1) + 2d0*G(2)*UPM(2,I1) &
+	                    + 2d0*G(3)*UPM(3,I1) +     G(4)*UPM(4,I1) &
+                        + 2d0*G(5)*UPM(5,I1) +     G(6)*UPM(6,I1)
 
-            EXPAV(1:NN1)=EXP(-qZq(1:NN1)) * SQRT(DETA(1:NN1)*invDETAG(1:NN1))
+        QP_(1) = -G(1)*UPV(1,I1) - G(2)*UPV(2,I1) - G(3)*UPV(3,I1)
+        QP_(2) = -G(2)*UPV(1,I1) - G(4)*UPV(2,I1) - G(5)*UPV(3,I1)
+        QP_(3) = -G(3)*UPV(1,I1) - G(5)*UPV(2,I1) - G(6)*UPV(3,I1)
 
-            v0(1:NN1) = 2.0_RP*expav(1:NN1)*LJC(IG)
-            Ulocal=Ulocal + 0.5_RP *sum(v0)
+        GU = mm_ss(G, UPM(:,I1))
+        GUG = -mm_ss(GU, G)
 
-            if (IG == 1) then
-                DO J=1,3
-                    UX0(1:NN1,J) = - v0(1:NN1)*Zq(1:NN1,J)
-                END DO
+        GUG(1) = GUG(1) + invmass
+        GUG(4) = GUG(4) + invmass
+        GUG(6) = GUG(6) + invmass
 
-                UXX0(1:NN1,1) = v0(1:NN1)*(2.0_RP*Zq(1:NN1,1)*Zq(1:NN1,1) - Z(1:NN1,1))
-                UXX0(1:NN1,2) = v0(1:NN1)*(2.0_RP*Zq(1:NN1,2)*Zq(1:NN1,1) - Z(1:NN1,2))
-                UXX0(1:NN1,3) = v0(1:NN1)*(2.0_RP*Zq(1:NN1,3)*Zq(1:NN1,1) - Z(1:NN1,3))
-                UXX0(1:NN1,4) = v0(1:NN1)*(2.0_RP*Zq(1:NN1,2)*Zq(1:NN1,2) - Z(1:NN1,4))
-                UXX0(1:NN1,5) = v0(1:NN1)*(2.0_RP*Zq(1:NN1,3)*Zq(1:NN1,2) - Z(1:NN1,5))
-                UXX0(1:NN1,6) = v0(1:NN1)*(2.0_RP*Zq(1:NN1,3)*Zq(1:NN1,3) - Z(1:NN1,6))
-                cycle
-            end if
+        yp(qidx) = QP_
+        yp(gidx) = GUG
+    end do
+    !$omp end do
+
+    yp(NEQ) = -(0.25d0*TRUXXG + U)/real(Natom)
+END SUBROUTINE RHSS0
+
+subroutine stream_kernel(NN1, x12, y12, z12, GC, U, UX0, UXX0)
+    implicit none
+    integer, intent(in) :: NN1
+    real(RP), intent(in) :: x12(:), y12(:), z12(:), GC(:,:)
+    double precision, intent(inout) :: U
+    real(RP), intent(out) :: UX0(:,:), UXX0(:,:)
+
+
+    integer :: IG, J
+
+    call pdetminvm_sg(NN1, GC, DETA, A)
+
+    DO IG=1,NGAUSS      ! BEGIN SUMMATION OVER GAUSSIANS
+        AG(1:NN1,1) = LJA(IG) + A(1:NN1,1)
+        AG(1:NN1,2) =           A(1:NN1,2)
+        AG(1:NN1,3) =           A(1:NN1,3)
+        AG(1:NN1,4) = LJA(IG) + A(1:NN1,4)
+        AG(1:NN1,5) =           A(1:NN1,5)
+        AG(1:NN1,6) = LJA(IG) + A(1:NN1,6)
+
+        call pdetminvm_sg(NN1, AG, invDETAG, Z)
+        do J=1,6
+            Z(1:NN1,J) = - (LJA(IG)**2) * Z(1:NN1,J)
+        end do
+
+        Z(1:NN1,1)=LJA(IG) + Z(1:NN1,1)
+        Z(1:NN1,4)=LJA(IG) + Z(1:NN1,4)
+        Z(1:NN1,6)=LJA(IG) + Z(1:NN1,6)
+
+        !Zq = matmul(Z, Q12) ! R = -2.0*Zq
+        ZQ(1:NN1,1) = Z(1:NN1,1)*x12(1:NN1) + Z(1:NN1,2) * y12(1:NN1) + Z(1:NN1,3)*z12(1:NN1)
+        ZQ(1:NN1,2) = Z(1:NN1,2)*x12(1:NN1) + Z(1:NN1,4) * y12(1:NN1) + Z(1:NN1,5)*z12(1:NN1)
+        ZQ(1:NN1,3) = Z(1:NN1,3)*x12(1:NN1) + Z(1:NN1,5) * y12(1:NN1) + Z(1:NN1,6)*z12(1:NN1)
+
+        !qZq = dot_product(Q12, Zq) 
+        qZq(1:NN1) = Zq(1:NN1,1)*x12(1:NN1) + Zq(1:NN1,2)*y12(1:NN1) + Zq(1:NN1,3)*z12(1:NN1)
+
+        EXPAV(1:NN1)=EXP(-qZq(1:NN1)) * SQRT(DETA(1:NN1)*invDETAG(1:NN1))
+
+        v0(1:NN1) = 2.0_RP*expav(1:NN1)*LJC(IG)
+        U = U + 0.5_RP *sum(v0(1:NN1))
+
+        if (IG == 1) then
             DO J=1,3
-                UX0(1:NN1,J) = UX0(1:NN1,J) - v0(1:NN1)*Zq(1:NN1,J)
+                UX0(1:NN1,J) = - v0(1:NN1)*Zq(1:NN1,J)
             END DO
 
-            UXX0(1:NN1,1) = UXX0(1:NN1,1) + v0(1:NN1)*(2.0_RP*Zq(1:NN1,1)*Zq(1:NN1,1) - Z(1:NN1,1))
-            UXX0(1:NN1,2) = UXX0(1:NN1,2) + v0(1:NN1)*(2.0_RP*Zq(1:NN1,2)*Zq(1:NN1,1) - Z(1:NN1,2))
-            UXX0(1:NN1,3) = UXX0(1:NN1,3) + v0(1:NN1)*(2.0_RP*Zq(1:NN1,3)*Zq(1:NN1,1) - Z(1:NN1,3))
-            UXX0(1:NN1,4) = UXX0(1:NN1,4) + v0(1:NN1)*(2.0_RP*Zq(1:NN1,2)*Zq(1:NN1,2) - Z(1:NN1,4))
-            UXX0(1:NN1,5) = UXX0(1:NN1,5) + v0(1:NN1)*(2.0_RP*Zq(1:NN1,3)*Zq(1:NN1,2) - Z(1:NN1,5))
-            UXX0(1:NN1,6) = UXX0(1:NN1,6) + v0(1:NN1)*(2.0_RP*Zq(1:NN1,3)*Zq(1:NN1,3) - Z(1:NN1,6))
-        ENDDO 
+            UXX0(1:NN1,1) = v0(1:NN1)*(2.0_RP*Zq(1:NN1,1)*Zq(1:NN1,1) - Z(1:NN1,1))
+            UXX0(1:NN1,2) = v0(1:NN1)*(2.0_RP*Zq(1:NN1,2)*Zq(1:NN1,1) - Z(1:NN1,2))
+            UXX0(1:NN1,3) = v0(1:NN1)*(2.0_RP*Zq(1:NN1,3)*Zq(1:NN1,1) - Z(1:NN1,3))
+            UXX0(1:NN1,4) = v0(1:NN1)*(2.0_RP*Zq(1:NN1,2)*Zq(1:NN1,2) - Z(1:NN1,4))
+            UXX0(1:NN1,5) = v0(1:NN1)*(2.0_RP*Zq(1:NN1,3)*Zq(1:NN1,2) - Z(1:NN1,5))
+            UXX0(1:NN1,6) = v0(1:NN1)*(2.0_RP*Zq(1:NN1,3)*Zq(1:NN1,3) - Z(1:NN1,6))
+            cycle
+        end if
+        DO J=1,3
+            UX0(1:NN1,J) = UX0(1:NN1,J) - v0(1:NN1)*Zq(1:NN1,J)
+        END DO
 
-        ! I2
-        UPV1 = UPV(I1,:)
-        UPM1 = UPM(I1,:)
-        do J=1,NN1
-            UPV1 = UPV1 + UX0 (J,:)
-            UPV(nbidx(J,I1),:) = UPV(nbidx(J,I1),:) - UX0(J,:)
+        UXX0(1:NN1,1) = UXX0(1:NN1,1) + v0(1:NN1)*(2.0_RP*Zq(1:NN1,1)*Zq(1:NN1,1) - Z(1:NN1,1))
+        UXX0(1:NN1,2) = UXX0(1:NN1,2) + v0(1:NN1)*(2.0_RP*Zq(1:NN1,2)*Zq(1:NN1,1) - Z(1:NN1,2))
+        UXX0(1:NN1,3) = UXX0(1:NN1,3) + v0(1:NN1)*(2.0_RP*Zq(1:NN1,3)*Zq(1:NN1,1) - Z(1:NN1,3))
+        UXX0(1:NN1,4) = UXX0(1:NN1,4) + v0(1:NN1)*(2.0_RP*Zq(1:NN1,2)*Zq(1:NN1,2) - Z(1:NN1,4))
+        UXX0(1:NN1,5) = UXX0(1:NN1,5) + v0(1:NN1)*(2.0_RP*Zq(1:NN1,3)*Zq(1:NN1,2) - Z(1:NN1,5))
+        UXX0(1:NN1,6) = UXX0(1:NN1,6) + v0(1:NN1)*(2.0_RP*Zq(1:NN1,3)*Zq(1:NN1,3) - Z(1:NN1,6))
+    ENDDO
+end subroutine stream_kernel
 
-            UPM1 = UPM1 + UXX0(J,:)
-            UPM(nbidx(J,I1),:) = UPM(nbidx(J,I1),:) + UXX0(J,:)
-        end do
-        UPV(I1,:) = UPV1
-        UPM(I1,:) = UPM1
-    ENDDO ! I
-!$omp end do
+pure function mm_ss(A, B) result(C)
+    double precision, intent(in) :: A(6), B(6)
+    double precision :: C(6)
 
-    U = Ulocal
-!$omp workshare
-    TRUXXG =  sum(UPM(:,1)*G(1)%p) + 2*sum(UPM(:,2)*G(2)%p) &
-        + 2.0*sum(UPM(:,3)*G(3)%p) +   sum(UPM(:,4)*G(4)%p) &
-        + 2.0*sum(UPM(:,5)*G(5)%p) +   sum(UPM(:,6)*G(6)%p)
+    double precision :: x22, x33, x53, x55
 
-    yp(        1:  Natom) = - G(1)%p*UPV(:,1) - G(2)%p*UPV(:,2) - G(3)%p*UPV(:,3)
-    yp(  Natom+1:2*Natom) = - G(2)%p*UPV(:,1) - G(4)%p*UPV(:,2) - G(5)%p*UPV(:,3)
-    yp(2*Natom+1:3*Natom) = - G(3)%p*UPV(:,1) - G(5)%p*UPV(:,2) - G(6)%p*UPV(:,3)
-!$omp end workshare
-!$omp end parallel
-
-    U = Ulocal
-
-    do J=1,6
-        GUG(J)%p => yp(3*Natom + (J-1)*Natom + 1 : 3*Natom + J*Natom)
-    end do
-    call pmm_sg(reshape(y(3*Natom+1:9*Natom), (/Natom, 6/)), UPM, GU)
-    call pmm_sg(GU, y(3*Natom+1:9*Natom), yp(3*Natom+1:9*Natom))
-    yp(3*Natom+1:9*Natom) = -yp(3*Natom+1:9*Natom)
-    GUG(1)%p = GUG(1)%p + invmass
-    GUG(4)%p = GUG(4)%p + invmass
-    GUG(6)%p = GUG(6)%p + invmass
-!    do i1=1,Natom
-!        k1=             3*(i1 - 1) + 1
-!        k2 =  3*Natom + 6*(i1 - 1) + 1
-!        k3 =  9*Natom + 9*(i1 - 1) + 1
-!        k4 = 18*Natom + 3*(i1 - 1) + 1
-!
-!        if (NEQ > 21*Natom ) then
-!            yp(k3 : k3+8) = - reshape(matmul(GU, Qnk(:,:,i1)), (/ 9 /) )
-!
-!            yp(k4 : k4 + 2 ) = - matmul(transpose(Qnk(:,:,i1)), UPV(:,I1))
-!        end if
-!    end do
-!! !$omp single
-    yp(NEQ) = -(0.25_RP*TRUXXG + U)/real(Natom)
-!! !$omp end single
-END SUBROUTINE RHSS0
+    x22 = A(2) * B(2)
+    x33 = A(3) * B(3)
+    x53 = A(5) * B(3)
+    x55 = A(5) * B(5)
+    C(1) = A(1)*B(1) + x22 + x33
+    C(2) = A(2)*B(1) + A(4)*B(2) + x53
+    C(3) = A(3)*B(1) + A(5)*B(2) + A(6)*B(3)
+    C(4) = x22 + A(4)*B(4) + A(5)*B(5)
+    C(5) = A(3)*B(2) + A(5)*B(4) + A(6)*B(5)
+    C(6) = x33 + x55 + A(6)*B(6)
+end function mm_ss
 
 !    11 22 33
 !    21 42 53
@@ -162,12 +172,12 @@ END SUBROUTINE RHSS0
 !    22 44 55
 !    32 54 65
 !    33 55 66
-subroutine pmm_sg(A, B, C)
+subroutine pmm_ss(A, B, C)
     double precision, intent(in) :: A(:,:), B(size(A,1),6)
     double precision, intent(out) :: C(size(A,1),6)
 
     double precision, dimension(size(A, 1)) :: x22, x33, x53, x55
-    
+
     !call atom_range(i1, i2)
 
     x22 = A(:,2) * B(:,2)
