@@ -5,6 +5,15 @@ module utils
         module procedure min_image1
         module procedure min_image2
     end interface
+
+    interface
+        subroutine index_sort(N, idx, data) bind(c)
+            use iso_c_binding
+            integer(c_size_t), value :: N
+            integer(c_int) :: idx(*)
+            real(c_double) :: data(*)
+        end subroutine
+    end interface
 contains
 subroutine seed_rng()
         integer :: seed(128), seed_size, c, crate, cmax
