@@ -147,23 +147,21 @@ subroutine detminvm_sg(A, DETA, INVA)
     INVA = INVA * INVDET
 end subroutine detminvm_sg
 
-subroutine pdetminvm_sg(A, DETINVA, INVA)
+subroutine pdetminvm_sg(N, A, DETINVA, INVA)
     implicit none
+    integer, intent(in) :: N
     real(RP), intent(in) :: A(:,:)
     real(RP), intent(out) :: DETINVA(:), INVA(:,:)
-    real(RP) :: DETA(size(A, 1))
-    integer :: I, N
+    integer :: I
 
-    N = size(A, 1)
+    INVA(1:N,1) =  A(1:N,4)*A(1:N,6) - A(1:N,5)**2
+    INVA(1:N,2) = -A(1:N,2)*A(1:N,6) + A(1:N,3)*A(1:N,5)
+    INVA(1:N,3) =  A(1:N,2)*A(1:N,5) - A(1:N,3)*A(1:N,4)
+    INVA(1:N,4) =  A(1:N,1)*A(1:N,6) - A(1:N,3)**2
+    INVA(1:N,5) = -A(1:N,1)*A(1:N,5) + A(1:N,3)*A(1:N,2)
+    INVA(1:N,6) =  A(1:N,1)*A(1:N,4) - A(1:N,2)**2
 
-    INVA(1:N,1) =  A(:,4)*A(:,6) - A(:,5)**2
-    INVA(1:N,2) = -A(:,2)*A(:,6) + A(:,3)*A(:,5)
-    INVA(1:N,3) =  A(:,2)*A(:,5) - A(:,3)*A(:,4)
-    INVA(1:N,4) =  A(:,1)*A(:,6) - A(:,3)**2
-    INVA(1:N,5) = -A(:,1)*A(:,5) + A(:,3)*A(:,2)
-    INVA(1:N,6) =  A(:,1)*A(:,4) - A(:,2)**2
-
-    DETINVA(1:N) = 1.0_RP/(INVA(1:N,1)*A(:,1) +INVA(1:N,2)*A(:,2) +INVA(1:N,3)*A(:,3))
+    DETINVA(1:N) = 1.0_RP/(INVA(1:N,1)*A(1:N,1) +INVA(1:N,2)*A(1:N,2) +INVA(1:N,3)*A(1:N,3))
     do I=1,6
         INVA(1:N,I) = INVA(1:N,I) * DETINVA(1:N)
     end do
