@@ -213,11 +213,11 @@ subroutine rhss_zero_time(NEQ, y, yp)
 
     DO I=1,Natom-1
         if (nnb(i) == 0) cycle
-        rsq(1:NNB(i)) = min_image(y(nbidx(1:NNB(i),i)) - y(i), bl)**2 &
-            + min_image(y(Natom + nbidx(1:NNB(i),i)) - y(Natom + i), bl)**2 &
+        rsq(1:NNB(i)) = min_image(y(nbidx(1:NNB(i),i)) - y(          i), bl)**2 &
+            + min_image(y(  Natom + nbidx(1:NNB(i),i)) - y(  Natom + i), bl)**2 &
             + min_image(y(2*Natom + nbidx(1:NNB(i),i)) - y(2*Natom + i), bl)**2
         DO J=1,NGAUSS
-                U = U + LJC(J)*sum(EXP(-LJA(J)*rsq(1:NNB(i))))
+            U = U + LJC(J)*sum(EXP(-LJA(J)*rsq(1:NNB(i))))
         END DO
     ENDDO
 

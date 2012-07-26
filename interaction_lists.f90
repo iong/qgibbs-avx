@@ -1,19 +1,21 @@
-subroutine interaction_lists(Q)
+subroutine interaction_lists(x, y, z)
     implicit none
-    real*8, intent(in) :: Q(:,:)
-    integer :: N,I,J, NN
-    real*8 rsq,rc2,qij(3)
+    real*8, intent(in) :: x(:), y(:), z(:)
+    integer :: I,J, NN, N
+    real*8 :: rsq(size(x)),rc2
 
-    N = size(Q, 2)
+    N = size(x)
     rc2=rc**2
 !$omp parallel
 !$OMP DO SCHEDULE(DYNAMIC) PRIVATE(I, J, QIJ, RSQ)
     do I=1,N-1
         NN = 0
+        rsq(i+1:) = min_image(x(i) - x(i+1:), bl)**2 &
+                  + min_image(y(i) - y(i+1:), bl)**2 &
+                  + min_image(z(i) - z(i+1:), bl)**2
+ 
         do J=I+1,N
-            qij=Q(:,I)-Q(:,J)
-            rsq = sum(min_image(qij, BL)**2)
-            if(rsq <= rc2) then
+            if(rsq(j) <= rc2) then
                 NN = NN + 1
                 NBIDX(NN, I) = J
             endif

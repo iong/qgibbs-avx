@@ -16,8 +16,6 @@ SUBROUTINE vgw0(Q0, BL_, beta,Ueff, rt)
     Natom = size(Q0, 2)
     BL = BL_
 
-    call interaction_lists(Q0)
-
     NEQ = 9*Natom + 1
     !if (present(WX)) NEQ = NEQ + 12*Natom
 
@@ -26,6 +24,12 @@ SUBROUTINE vgw0(Q0, BL_, beta,Ueff, rt)
 
     allocate(Y(NEQ), YP(NEQ), ATOL(NEQ), RWORK(LRW), IWORK(LIW))
 
+    y(        1 :   Natom) = Q0(1,:)
+    y(  Natom+1 : 2*Natom) = Q0(2,:)
+    y(2*Natom+1 : 3*Natom) = Q0(3,:)
+
+    y(3*Natom+1:) = 0d0
+    call interaction_lists(y(1:Natom), y(Natom+1:2*Natom), y(2*Natom+1:3*Natom))
     ITOL=2
     RTOL=0
     ATOL(1:3*Natom) = vgw_atol(1)
@@ -45,10 +49,6 @@ SUBROUTINE vgw0(Q0, BL_, beta,Ueff, rt)
     RWORK(7)=dtmin
     
     T = 0
-    y = 0d0
-    y(1:Natom) = Q0(1,:)
-    y(Natom+1:2*Natom) = Q0(2,:)
-    y(2*Natom+1:3*Natom) = Q0(3,:)
 
     call cpu_time(start_time)
     TSTOP = 0.5d0*beta
