@@ -7,14 +7,14 @@ cmake_minimum_required(VERSION 2.8)
 # BLA_VENDOR: Intel10_lp64, ACML_MP, ACML_FM4_MP, ACML, etc.
 set(CMAKE_C_COMPILER_INIT "icc")
 set(CMAKE_Fortran_COMPILER_INIT "ifort")
-set(BLA_VENDOR "mkl_parallel")
+set(BLA_VENDOR "mkl_sequential")
 
 
 PROJECT(qgibbs C Fortran)
 
 if (CMAKE_Fortran_COMPILER_ID STREQUAL Intel)
-    set(CMAKE_C_FLAGS "-openmp")
-    set(CMAKE_Fortran_FLAGS "-openmp  -heap-arrays")
+    #set(CMAKE_C_FLAGS "-openmp")
+    set(CMAKE_Fortran_FLAGS "-heap-arrays")
     set(CMAKE_Fortran_FLAGS_RELEASE "-O3 -xHost -ipo")
     set(CMAKE_C_FLAGS_RELEASE "-O3 -xHost -ipo")
 
@@ -45,8 +45,8 @@ endif()
 #Targets!
 
 # Quantum Gibbs with VGW-SP
-ADD_EXECUTABLE(qgibbs utils.f90 dlsode.f vgw.f90 total_energy_vgw.f90 qgibbs.f90)
-ADD_EXECUTABLE(cluster utils.f90 dlsode.f vgw.f90 vgwref.f90 xyz.f90 cluster.f90)
+ADD_EXECUTABLE(qgibbs utils.f90 dlsode.f vgw.f90 index_sort.c total_energy_vgw.f90 qgibbs.f90)
+ADD_EXECUTABLE(cluster utils.f90 dlsode.f vgw.f90 index_sort.c vgwref.f90 xyz.f90 cluster.f90)
 
 target_link_libraries(qgibbs ${BLAS_LIBRARIES})
 target_link_libraries(cluster ${BLAS_LIBRARIES})
