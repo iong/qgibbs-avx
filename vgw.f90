@@ -1,5 +1,6 @@
 module vgw
     use utils
+    use iso_c_binding
     implicit none
     private
     public :: vgwinit, vgw0, vgwcleanup
