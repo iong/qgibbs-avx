@@ -167,6 +167,47 @@ subroutine pdetminvm_sg(N, A, DETINVA, INVA)
     end do
 end subroutine pdetminvm_sg
 
+subroutine pdetminvm_sg2(N, A, DETINVA, INVA)
+    implicit none
+    integer, intent(in) :: N
+    real(RP), intent(in) :: A(:,:)
+    real(RP), intent(out) :: DETINVA(:), INVA(:,:)
+    integer :: I, J, N8
+    real(RP) :: DETIA(8), IA(8,6)
+
+    N8 = (N/8)*8
+    do i=1,N8,8
+        IA(:,1) =  A(i:i+7,4)*A(i:i+7,6) - A(i:i+7,5)**2
+        IA(:,2) = -A(i:i+7,2)*A(i:i+7,6) + A(i:i+7,3)*A(i:i+7,5)
+        IA(:,3) =  A(i:i+7,2)*A(i:i+7,5) - A(i:i+7,3)*A(i:i+7,4)
+        IA(:,4) =  A(i:i+7,1)*A(i:i+7,6) - A(i:i+7,3)**2
+        IA(:,5) = -A(i:i+7,1)*A(i:i+7,5) + A(i:i+7,3)*A(i:i+7,2)
+        IA(:,6) =  A(i:i+7,1)*A(i:i+7,4) - A(i:i+7,2)**2
+
+        DETIA = 1.0_RP / ( IA(:,1)*A(i:i+7,1) +IA(:,2)*A(i:i+7,2) &
+            + IA(:,3)*A(i:i+7,3) )
+
+        do J=1,6
+            INVA(i:i+7,J) = IA(:,J) * DETIA
+        end do
+        DETINVA(i:i+7) = DETIA
+    end do
+
+    if (N8 == N) return
+
+    INVA(N8+1:N,1) =  A(N8+1:N,4)*A(N8+1:N,6) - A(N8+1:N,5)**2
+    INVA(N8+1:N,2) = -A(N8+1:N,2)*A(N8+1:N,6) + A(N8+1:N,3)*A(N8+1:N,5)
+    INVA(N8+1:N,3) =  A(N8+1:N,2)*A(N8+1:N,5) - A(N8+1:N,3)*A(N8+1:N,4)
+    INVA(N8+1:N,4) =  A(N8+1:N,1)*A(N8+1:N,6) - A(N8+1:N,3)**2
+    INVA(N8+1:N,5) = -A(N8+1:N,1)*A(N8+1:N,5) + A(N8+1:N,3)*A(N8+1:N,2)
+    INVA(N8+1:N,6) =  A(N8+1:N,1)*A(N8+1:N,4) - A(N8+1:N,2)**2
+
+    DETINVA(N8+1:N) = 1.0_RP/(INVA(N8+1:N,1)*A(N8+1:N,1) +INVA(N8+1:N,2)*A(N8+1:N,2) +INVA(N8+1:N,3)*A(N8+1:N,3))
+    do I=1,6
+        INVA(N8+1:N,I) = INVA(N8+1:N,I) * DETINVA(N8+1:N)
+    end do
+end subroutine
+
 
 
 subroutine detminvm_ss(A, DETA, INVA)
