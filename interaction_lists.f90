@@ -27,4 +27,5 @@ subroutine interaction_lists(x, y, z)
 
     NNB(N) = 0
     nnbmax = maxval(nnb)
+    nnbmax = (nnbmax/8 + 1) * 8
 end subroutine interaction_lists

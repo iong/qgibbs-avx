@@ -1,0 +1,183 @@
+#include <math.h>
+#include <stdlib.h>
+#include <immintrin.h>
+
+static float  expav[8] __attribute__((aligned(32)));
+
+static inline __m256 vmuladd3e(__m256 rx1, __m256 ry1, __m256 rx2, __m256 ry2, __m256 rx3, __m256 ry3)
+{
+	rx1 = _mm256_mul_ps(rx1, ry1);
+	rx2 = _mm256_mul_ps(rx2, ry2);
+	rx3 = _mm256_mul_ps(rx3, ry3);
+
+	rx1 = _mm256_add_ps(rx1, rx2);
+	rx1 = _mm256_add_ps(rx1, rx3);
+
+	return rx1;
+}
+
+static inline __m256 invdetinv_avx(__m256 *a, __m256 *ia)
+{
+	__m256 detia;
+	ia[0] = _mm256_sub_ps(_mm256_mul_ps(a[3], a[5]), _mm256_mul_ps(a[4], a[4]));
+	ia[1] = _mm256_sub_ps(_mm256_mul_ps(a[2], a[4]), _mm256_mul_ps(a[1], a[5]));
+	ia[2] = _mm256_sub_ps(_mm256_mul_ps(a[1], a[4]), _mm256_mul_ps(a[2], a[3]));
+	ia[3] = _mm256_sub_ps(_mm256_mul_ps(a[0], a[5]), _mm256_mul_ps(a[2], a[2]));
+	ia[4] = _mm256_sub_ps(_mm256_mul_ps(a[2], a[1]), _mm256_mul_ps(a[0], a[4]));
+	ia[5] = _mm256_sub_ps(_mm256_mul_ps(a[0], a[3]), _mm256_mul_ps(a[1], a[1]));
+
+	detia = _mm256_add_ps(_mm256_mul_ps(ia[0], a[0]), _mm256_mul_ps(ia[1], a[1]));
+	detia = _mm256_add_ps(detia, _mm256_mul_ps(ia[2], a[2]));
+	detia = _mm256_rcp_ps(detia);
+
+	ia[0] = _mm256_mul_ps(ia[0],detia);
+	ia[1] = _mm256_mul_ps(ia[1],detia);
+	ia[2] = _mm256_mul_ps(ia[2],detia);
+	ia[3] = _mm256_mul_ps(ia[3],detia);
+	ia[4] = _mm256_mul_ps(ia[4],detia);
+	ia[5] = _mm256_mul_ps(ia[5],detia);
+
+	return detia;
+}
+
+static void inline vgw_kernel_avx1(int first, int stride, int NGAUSS, float *LJA, float *LJC, float *q, float *GC, float *U, float *UX0, float *UXX0)
+{
+    int IG, i, j;
+    __m256 dq[3], gc[6], a[6], deta;
+
+    for (i=0; i<3; i++) dq[i] = _mm256_load_ps( q + first + i*stride);
+    for (i=0; i<6; i++) gc[i] = _mm256_load_ps(GC + first + i*stride);
+
+    deta = invdetinv_avx(gc, a);
+
+    __m256 ux0[3], uxx0[6], Ulocal;
+    for (i=0; i<3; i++) ux0[i] = _mm256_setzero_ps();
+    for (i=0; i<6; i++) uxx0[i] = _mm256_setzero_ps();
+
+    for(IG=0; IG<NGAUSS; IG++) {
+	__m256 lja_ig = _mm256_broadcast_ss(LJA+IG);
+	__m256 ag[6];
+	ag[0] = _mm256_add_ps(a[0], lja_ig);
+	ag[1] = a[1];
+	ag[2] = a[2];
+	ag[3] = _mm256_add_ps(a[3], lja_ig);
+	ag[4] = a[4];
+	ag[5] = _mm256_add_ps(a[5], lja_ig);
+
+	__m256 idetag, z[6], Zq[3], qZq;
+	idetag = invdetinv_avx(ag, z);
+
+	__m256 lja_igsq = _mm256_sub_ps(_mm256_setzero_ps(), _mm256_mul_ps(lja_ig, lja_ig));
+
+	for (j=0; j<6; j++) z[j] = _mm256_mul_ps(lja_igsq, z[j]);
+	z[0] = _mm256_add_ps(z[0], lja_ig);
+	z[3] = _mm256_add_ps(z[3], lja_ig);
+	z[5] = _mm256_add_ps(z[5], lja_ig);
+
+	//Zq = matmul(Z, Q12) ! R = -2.0*Zq
+	Zq[0]=vmuladd3e(z[0], dq[0], z[1], dq[1], z[2], dq[2]);
+	Zq[1]=vmuladd3e(z[1], dq[0], z[3], dq[1], z[4], dq[2]);
+	Zq[2]=vmuladd3e(z[2], dq[0], z[4], dq[1], z[5], dq[2]);
+
+	//qZq = dot_product(Q12, Zq) 
+	qZq = vmuladd3e(Zq[0], dq[0], Zq[1], dq[1], Zq[2], dq[2]);
+
+	_mm256_store_ps(expav, qZq);
+	for (i=0; i<8; i++) expav[i] = expf(-expav[i]);
+
+	__m256 two = _mm256_set_ps(2.0f, 2.0f, 2.0f, 2.0f, 2.0f, 2.0f, 2.0f, 2.0f);
+	__m256 v0 = _mm256_mul_ps(_mm256_mul_ps(two, _mm256_broadcast_ss(LJC+IG)), _mm256_mul_ps(_mm256_load_ps(expav), _mm256_sqrt_ps(_mm256_mul_ps(deta, idetag))));
+
+	Ulocal = _mm256_add_ps(Ulocal, v0);
+
+	for (j=0; j<3; j++) {
+	    ux0[j] = _mm256_sub_ps(ux0[j], _mm256_mul_ps(v0, Zq[j]));
+	}
+
+	uxx0[0] = _mm256_add_ps(uxx0[0], _mm256_mul_ps(v0, _mm256_sub_ps(_mm256_mul_ps(two, _mm256_mul_ps(Zq[0], Zq[0])), z[0])));
+	uxx0[1] = _mm256_add_ps(uxx0[1], _mm256_mul_ps(v0, _mm256_sub_ps(_mm256_mul_ps(two, _mm256_mul_ps(Zq[1], Zq[0])), z[1])));
+	uxx0[2] = _mm256_add_ps(uxx0[2], _mm256_mul_ps(v0, _mm256_sub_ps(_mm256_mul_ps(two, _mm256_mul_ps(Zq[2], Zq[0])), z[2])));
+	uxx0[3] = _mm256_add_ps(uxx0[3], _mm256_mul_ps(v0, _mm256_sub_ps(_mm256_mul_ps(two, _mm256_mul_ps(Zq[1], Zq[1])), z[3])));
+	uxx0[4] = _mm256_add_ps(uxx0[4], _mm256_mul_ps(v0, _mm256_sub_ps(_mm256_mul_ps(two, _mm256_mul_ps(Zq[2], Zq[1])), z[4])));
+	uxx0[5] = _mm256_add_ps(uxx0[5], _mm256_mul_ps(v0, _mm256_sub_ps(_mm256_mul_ps(two, _mm256_mul_ps(Zq[2], Zq[2])), z[5])));
+
+    }
+    __m256 half = _mm256_set_ps(0.5f, 0.5f, 0.5f, 0.5f, 0.5f, 0.5f, 0.5f, 0.5f);
+    _mm256_store_ps(U+first, _mm256_mul_ps(half, Ulocal));
+
+    for (i=0; i<3; i++) _mm256_store_ps( UX0+first + i*stride,  ux0[i]);
+    for (i=0; i<6; i++) _mm256_store_ps(UXX0+first + i*stride, uxx0[i]);
+}
+
+
+double inline vgw_kernel_avx(int NN1, int stride, int NGAUSS, float *LJA, float *LJC, float *q, float *GC, float *UX0, float *UXX0)
+{
+	size_t NN18;
+	int i;
+	float *U;
+	double Utot;
+
+
+	NN18 = 8*((NN1 + 7) / 8);
+	posix_memalign((void **)&U, 32L, NN18);
+	for (i=0; i < NN1 + 7; i += 8) {
+		vgw_kernel_avx1(i, stride, NGAUSS, LJA, LJC, q, GC, U, UX0, UXX0);
+	}
+	Utot = 0.0;
+	for (i=0; i<NN1; i++) Utot += U[i];
+
+	free(U);
+
+	return Utot;
+}
+
+extern int Natom;
+extern int nnbmax, *nnbidx, *nnb;
+
+void gaussian_average(int Natom, double *y, double *U, double *UPV, double *UPM)
+{
+	float E3[6] = {1.0, 0.0, 0.0, 1.0, 0.0, 1.0};
+
+	memset(UPM, 0, Natom*6*sizeof(double));
+	memset(UPV, 0, Natom*sizeof(double));
+	U = 0.0;
+
+	posix_memalign(&dq  , 32, nnbmax*3*sizeof(float));
+	posix_memalign(&UX0 , 32, nnbmax*3*sizeof(float));
+	posix_memalign(&UXX0, 32, nnbmax*6*sizeof(float));
+
+	for (i=0; i<Natom-1; i++) {
+		int NN1 = nnb[i];	
+		int NN18 = 8*((NN1 + 7) / 8);
+
+		for (k=0; k<3; k++) {
+			for (j=0; j<NN1; j++) {
+				dq[j + k*nnbmax] = min_image(y[i + k*Natom] - y[nbidx[i][j] + k*Natom], bl);
+			}
+			for (j=NN1; j<NN18; j++) dq[j + k*nnbmax] = 1.0;
+		}
+
+		for (k=0; k<6; k++) {
+			for (j=0; j<NN1; j++) {
+				GC[j + k*nnbmax] = y[i + (k+3)*Natom] + y[nbidx[i][j] + (k+3)*Natom];
+			}
+			for (j=NN1; j<NN18; j++) GC[j + k*nnbmax] = E3[k];
+		}
+
+		U = U + vgw_kernel_avx(NN1, nnbmax, NGAUSS, LJA, LJC, dq, GC, UX0, UXX0);
+
+		for (j=0; j<NN1; j++) {
+			for (k=0; k<3; k++) UPV[k + 3*i           ] += UX0[j+k*nnbmax];
+			for (k=0; k<3; k++) UPV[k + 3*nbidx[i][j] ] -= UX0[j+k*nnbmax];
+
+			for (k=0; k<6; k++) UPM[k + 6*i           ] += UXX0[j+k*nnbmax];
+			for (k=0; k<6; k++) UPM[k + 6*nbidx[i][j] ] += UXX0[j+k*nnbmax];
+		}
+	}
+
+	free(dq);
+	free(UX0);
+	free(UXX0);
+}
+
+

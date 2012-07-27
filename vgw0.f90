@@ -33,8 +33,14 @@ SUBROUTINE vgw0(Q0, BL_, beta,Ueff, rt)
     call       presort_ppc(y(1:Natom), y(Natom+1:2*Natom), y(2*Natom+1:3*Natom), 4)
     call interaction_lists(y(1:Natom), y(Natom+1:2*Natom), y(2*Natom+1:3*Natom))
 
-    allocate(DETA(nnbmax), invDETAG(nnbmax), qZq(nnbmax), expav(nnbmax), v0(nnbmax), &
-          Zq(nnbmax, 3), GC(nnbmax, 6), A(nnbmax, 6), AG(nnbmax, 6), Z(nnbmax, 6) )
+    call c_f_pointer(allocate_aligned(nnbmax*6*RP), GC, (/ nnbmax, 6 /))
+    call c_f_pointer(allocate_aligned(nnbmax*6*RP), A, (/ nnbmax, 6 /))
+    call c_f_pointer(allocate_aligned(nnbmax*RP)  , DETA, (/ nnbmax /))
+    call c_f_pointer(allocate_aligned(nnbmax*6*RP), AG, (/ nnbmax, 6 /))
+    call c_f_pointer(allocate_aligned(nnbmax*6*RP), Z, (/ nnbmax, 6 /))
+    call c_f_pointer(allocate_aligned(nnbmax*RP)  , invDETAG, (/ nnbmax /))
+
+    allocate(qZq(nnbmax), expav(nnbmax), v0(nnbmax), Zq(nnbmax, 3))
 
     ITOL=2
     RTOL=0
@@ -70,7 +76,14 @@ SUBROUTINE vgw0(Q0, BL_, beta,Ueff, rt)
     !write (*,*) IWORK(11), 'steps,', IWORK(12), ' RHSS calls, logdet =', logdet
 
     deallocate(y, yp, RWORK, IWORK, ATOL)
-    deallocate(DETA, invDETAG, qZq, expav, v0, Zq, GC, A, AG, Z)
+    deallocate(qZq, expav, v0, Zq)
+
+    call posix_free(c_loc(GC))
+    call posix_free(c_loc(A))
+    call posix_free(c_loc(DETA))
+    call posix_free(c_loc(AG))
+    call posix_free(c_loc(invDETAG))
+    call posix_free(c_loc(Z))
 
     Ueff = -logrho/beta
     if (present(rt)) then

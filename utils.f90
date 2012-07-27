@@ -13,6 +13,21 @@ module utils
             integer(c_int) :: idx(*)
             real(c_double) :: data(*)
         end subroutine
+        subroutine pinvdetinv_avx(N, stride, a, inva, detinva) bind(c)
+            use iso_c_binding
+            integer(c_int), value :: N, stride
+            real(c_float) :: a(*)
+            real(c_float) :: inva(*), detinva(*)
+        end subroutine
+        subroutine posix_memalign(ptr, align, nbytes) bind(c)
+            use iso_c_binding
+            type(c_ptr) :: ptr
+            integer(c_size_t), value :: align, nbytes
+        end subroutine
+        subroutine posix_free(ptr) bind(c, name='free')
+            use iso_c_binding
+            type(c_ptr), value :: ptr
+        end subroutine
     end interface
 contains
 subroutine seed_rng()
@@ -329,5 +344,12 @@ pure subroutine find(l, i, ni)
             endif
         end do
 end subroutine find
+
+function allocate_aligned(nbytes) result(cptr)
+    use iso_c_binding
+    integer, intent(in) :: nbytes
+    type(c_ptr) :: cptr
+    call posix_memalign(cptr, 32_8, int(nbytes, c_size_t))
+end function
 
 end module utils

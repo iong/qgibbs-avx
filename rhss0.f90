@@ -1,17 +1,31 @@
 SUBROUTINE RHSS0(NEQ, T, Y, YP)
     use utils, only: RP
+    use iso_c_binding
     IMPLICIT NONE
     integer, intent(in) :: NEQ
     double precision, intent(in) :: T
     double precision, intent(in) , target :: Y(NEQ)
     double precision, intent(out), target :: YP(NEQ)
 
-    INTEGER :: J,I1,I2,IG, NN1, qidx(3), gidx(6)
-    real(RP), dimension(nnbmax) :: x12, y12, z12
-    real(RP), dimension(nnbmax, 3) :: UX0
-    real(RP), dimension(nnbmax, 6) :: UXX0
+    interface
+        function vgw_kernel_avx (first, stride, NGAUSS, LJA, LJC, q, GC, UX0, UXX0) bind(c)
+            use iso_c_binding
+            integer(c_int), value :: first, stride, NGAUSS
+            real(c_float), intent(in) :: LJA(*), LJC(*), q(*), GC(*)
+            real(c_float), intent(out) ::UX0(*), UXX0(*)
+            real(c_double) ::vgw_kernel_avx 
+        end function
+    end interface
 
+    integer(c_int) :: NN1, stride
+    INTEGER :: J,I1,I2,IG, NN18, qidx(3), gidx(6)
+    real(RP), dimension(:, :), pointer :: dq, UX0, UXX0
+    
     real(8) :: Ulocal, GU(6), GUG(6), QP_(3), UPV1(3), UPM1(6), G(6)
+
+    call c_f_pointer(allocate_aligned(nnbmax*3*RP), dq, (/ nnbmax, 3/))
+    call c_f_pointer(allocate_aligned(nnbmax*3*RP), UX0, (/ nnbmax, 3/))
+    call c_f_pointer(allocate_aligned(nnbmax*6*RP), UXX0, (/ nnbmax, 6/))
 
     UPM = 0.0d0
     UPV = 0.0d0
@@ -23,21 +37,31 @@ SUBROUTINE RHSS0(NEQ, T, Y, YP)
         return
     end if
 
-    !$omp parallel private(x12, y12, z12, DETA, invDETAG, qZq, expav, v0, Zq, GC, A, AG, Z, UX0, UXX0, UPV1, UPM1, J, IG, NN1)
+    !$omp parallel private(dq, DETA, invDETAG, qZq, expav, v0, Zq, GC, A, AG, Z, UX0, UXX0, UPV1, UPM1, J, IG, NN1)
     !$omp do schedule(dynamic) reduction(+:U,UPV, UPM)
     do I1=1,Natom-1
         NN1 = NNB(I1)
         if (NN1 == 0) cycle
 
-        x12(1:NN1) = min_image(y(          I1) - y(          nbidx(1:NN1,I1)), bl)
-        y12(1:NN1) = min_image(y(  Natom + I1) - y(  Natom + nbidx(1:NN1,I1)), bl)
-        z12(1:NN1) = min_image(y(2*Natom + I1) - y(2*Natom + nbidx(1:NN1,I1)), bl)
+        dq(1:NN1, 1) = min_image(y(          I1) - y(          nbidx(1:NN1,I1)), bl)
+        dq(1:NN1, 2) = min_image(y(  Natom + I1) - y(  Natom + nbidx(1:NN1,I1)), bl)
+        dq(1:NN1, 3) = min_image(y(2*Natom + I1) - y(2*Natom + nbidx(1:NN1,I1)), bl)
 
         do J=1,6
             GC(1:NN1,J) = y((J+2)*Natom + nbidx(1:NN1,I1)) + y((J+2)*Natom + I1)
         end do
+    NN18 = int((NN1 + 7) / 8) * 8
+        do J=1,3
+            dq(NN1+1:NN18, J) = 1.0_RP
+        end do
+    GC(NN1+1:NN18,1) = 1.0_RP
+    GC(NN1+1:NN18,2) = 0.0_RP
+    GC(NN1+1:NN18,3) = 0.0_RP
+    GC(NN1+1:NN18,4) = 1.0_RP
+    GC(NN1+1:NN18,5) = 0.0_RP
+    GC(NN1+1:NN18,6) = 1.0_RP
 
-        call stream_kernel(NN1, x12, y12, z12, GC, U, UX0, UXX0)
+        U = U + vgw_kernel_avx(NN1, int(nnbmax, c_int), NGAUSS, LJA, LJC, dq, GC, UX0, UXX0)
 
         do J=1,NN1
             UPV(:,I1) = UPV(:, I1) + UX0 (J,:)
@@ -48,6 +72,10 @@ SUBROUTINE RHSS0(NEQ, T, Y, YP)
         end do
     ENDDO ! I
     !$omp end do
+
+    call posix_free(c_loc(dq))
+    call posix_free(c_loc(UX0))
+    call posix_free(c_loc(UXX0))
 
     TRUXXG = 0d0
     !$omp do schedule(static) reduction(+:TRUXXG)
@@ -80,27 +108,31 @@ SUBROUTINE RHSS0(NEQ, T, Y, YP)
     yp(NEQ) = -(0.25d0*TRUXXG + U)/real(Natom)
 END SUBROUTINE RHSS0
 
-subroutine stream_kernel(NN1, x12, y12, z12, GC, U, UX0, UXX0)
+subroutine vgw_kernel(NN1, dq, GC, U, UX0, UXX0)
     implicit none
     integer, intent(in) :: NN1
-    real(RP), intent(in) :: x12(:), y12(:), z12(:), GC(:,:)
+    real(RP), intent(in) :: dq(:,:), GC(:,:)
     double precision, intent(inout) :: U
     real(RP), intent(out) :: UX0(:,:), UXX0(:,:)
 
 
-    integer :: IG, J
+    integer :: IG, J, NN18
 
-    call pdetminvm_sg(NN1, GC, DETA, A)
+    !call pdetminvm_sg(NN1, GC, DETA, A)
+    NN18 = int((NN1 + 7) / 8) * 8
+
+    call pinvdetinv_avx(NN18, nnbmax, GC, A, DETA)
 
     DO IG=1,NGAUSS      ! BEGIN SUMMATION OVER GAUSSIANS
-        AG(1:NN1,1) = LJA(IG) + A(1:NN1,1)
-        AG(1:NN1,2) =           A(1:NN1,2)
-        AG(1:NN1,3) =           A(1:NN1,3)
-        AG(1:NN1,4) = LJA(IG) + A(1:NN1,4)
-        AG(1:NN1,5) =           A(1:NN1,5)
-        AG(1:NN1,6) = LJA(IG) + A(1:NN1,6)
+        AG(1:NN18,1) = LJA(IG) + A(1:NN18,1)
+        AG(1:NN18,2) =           A(1:NN18,2)
+        AG(1:NN18,3) =           A(1:NN18,3)
+        AG(1:NN18,4) = LJA(IG) + A(1:NN18,4)
+        AG(1:NN18,5) =           A(1:NN18,5)
+        AG(1:NN18,6) = LJA(IG) + A(1:NN18,6)
 
-        call pdetminvm_sg(NN1, AG, invDETAG, Z)
+        !call pdetminvm_sg(NN18, AG, invDETAG, Z)
+        call pinvdetinv_avx(NN18, nnbmax, AG, Z, invDETAG)
         do J=1,6
             Z(1:NN1,J) = - (LJA(IG)**2) * Z(1:NN1,J)
         end do
@@ -110,12 +142,12 @@ subroutine stream_kernel(NN1, x12, y12, z12, GC, U, UX0, UXX0)
         Z(1:NN1,6)=LJA(IG) + Z(1:NN1,6)
 
         !Zq = matmul(Z, Q12) ! R = -2.0*Zq
-        ZQ(1:NN1,1) = Z(1:NN1,1)*x12(1:NN1) + Z(1:NN1,2) * y12(1:NN1) + Z(1:NN1,3)*z12(1:NN1)
-        ZQ(1:NN1,2) = Z(1:NN1,2)*x12(1:NN1) + Z(1:NN1,4) * y12(1:NN1) + Z(1:NN1,5)*z12(1:NN1)
-        ZQ(1:NN1,3) = Z(1:NN1,3)*x12(1:NN1) + Z(1:NN1,5) * y12(1:NN1) + Z(1:NN1,6)*z12(1:NN1)
+        ZQ(1:NN1,1) = Z(1:NN1,1)*dq(1:NN1,1) + Z(1:NN1,2) * dq(1:NN1,2) + Z(1:NN1,3)*dq(1:NN1,3)
+        ZQ(1:NN1,2) = Z(1:NN1,2)*dq(1:NN1,1) + Z(1:NN1,4) * dq(1:NN1,2) + Z(1:NN1,5)*dq(1:NN1,3)
+        ZQ(1:NN1,3) = Z(1:NN1,3)*dq(1:NN1,1) + Z(1:NN1,5) * dq(1:NN1,2) + Z(1:NN1,6)*dq(1:NN1,3)
 
         !qZq = dot_product(Q12, Zq) 
-        qZq(1:NN1) = Zq(1:NN1,1)*x12(1:NN1) + Zq(1:NN1,2)*y12(1:NN1) + Zq(1:NN1,3)*z12(1:NN1)
+        qZq(1:NN1) = Zq(1:NN1,1)*dq(1:NN1,1) + Zq(1:NN1,2)*dq(1:NN1,2) + Zq(1:NN1,3)*dq(1:NN1,3)
 
         EXPAV(1:NN1)=EXP(-qZq(1:NN1)) * SQRT(DETA(1:NN1)*invDETAG(1:NN1))
 
@@ -146,7 +178,7 @@ subroutine stream_kernel(NN1, x12, y12, z12, GC, U, UX0, UXX0)
         UXX0(1:NN1,5) = UXX0(1:NN1,5) + v0(1:NN1)*(2.0_RP*Zq(1:NN1,3)*Zq(1:NN1,2) - Z(1:NN1,5))
         UXX0(1:NN1,6) = UXX0(1:NN1,6) + v0(1:NN1)*(2.0_RP*Zq(1:NN1,3)*Zq(1:NN1,3) - Z(1:NN1,6))
     ENDDO
-end subroutine stream_kernel
+end subroutine vgw_kernel
 
 pure function mm_ss(A, B) result(C)
     double precision, intent(in) :: A(6), B(6)

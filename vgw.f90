@@ -7,8 +7,8 @@ module vgw
     
     integer :: Natom, Nmax, maxthreads
     real*8 :: BL, rfullmatsq
-    real*8, dimension(10) :: LJA, LJC
-    integer :: NGAUSS
+    real(RP), dimension(:), pointer :: LJA, LJC
+    integer(c_int) :: NGAUSS
     integer, allocatable :: NBIDX(:,:), NNB(:)
     
     real*8 :: U, TRUXXG
@@ -20,9 +20,9 @@ module vgw
 !$OMP THREADPRIVATE(tid, thread_start, thread_stop, nnbmax)
 
     
-    real(RP), allocatable, dimension(:) :: DETA, invDETAG, qZq, expav, v0
+    real(RP), allocatable, dimension(:) :: qZq, expav, v0
     real(RP), allocatable, dimension(:, :) :: Zq
-    real(RP), allocatable, dimension(:, :) :: GC, A, AG, Z
+    real(RP), pointer :: GC(:,:), A(:,:), DETA(:), AG(:,:), Z(:,:), invDETAG(:)
 
 contains
 
@@ -37,12 +37,16 @@ subroutine vgwinit(Nmax_, species, M, rcutoff, massx)
         upm(6, Nmax))
     
     
+    call c_f_pointer(allocate_aligned(16*RP)  , LJA, (/ 16 /))
+    call c_f_pointer(allocate_aligned(16*RP)  , LJC, (/ 16 /))
 include 'species.f90'
 end subroutine
 
 
 subroutine vgwcleanup()
     deallocate(NNB, NBIDX, UPV, UPM)
+    call posix_free(c_loc(LJA))
+    call posix_free(c_loc(LJC))
 end subroutine
 
 subroutine unpack_g(y, g)
