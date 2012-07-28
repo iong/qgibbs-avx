@@ -6,8 +6,8 @@ module vgw
     public :: vgwinit, vgw0, vgwcleanup
     
     integer :: Natom, Nmax, maxthreads
-    real*8 :: BL, rfullmatsq
-    real(RP), dimension(:), pointer :: LJA, LJC
+    real(c_double) :: BL, rfullmatsq
+    real(c_float) :: LJA(16), LJC(16)
     integer(c_int) :: NGAUSS
     integer, allocatable :: NBIDX(:,:), NNB(:)
     
@@ -20,9 +20,25 @@ module vgw
 !$OMP THREADPRIVATE(tid, thread_start, thread_stop, nnbmax)
 
     
-    real(RP), allocatable, dimension(:) :: qZq, expav, v0
-    real(RP), allocatable, dimension(:, :) :: Zq
-    real(RP), pointer :: GC(:,:), A(:,:), DETA(:), AG(:,:), Z(:,:), invDETAG(:)
+    real(RP), allocatable, dimension(:) :: qZq, expav, v0, DETA, invDETAG
+    real(RP), allocatable, dimension(:,:) :: Zq, GC, A, AG, Z
+
+    interface
+        subroutine gaussian_average_avx_init(Natom, nnb, nbidx, nnbmax, LJA, LJC, NGAUSS, bl) bind(c)
+            use iso_c_binding
+            integer(c_int), value :: Natom, nnbmax, NGAUSS
+            integer(c_int) :: nnb(*), nbidx(*)
+            real(c_float) :: LJA(*), LJC(*)
+            real(c_double) :: BL
+        end subroutine
+        subroutine gaussian_average_avx(y, U, UPV, UPM) bind(c)
+            use iso_c_binding
+            real(c_double), intent(in) :: y(*)
+            real(c_double), intent(out) :: U, UPV(*), UPM(*)
+        end subroutine
+        subroutine gaussian_average_avx_cleanup() bind(c)
+        end subroutine
+    end interface
 
 contains
 
@@ -35,42 +51,17 @@ subroutine vgwinit(Nmax_, species, M, rcutoff, massx)
     Nmax = Nmax_
     allocate(NNB(Nmax), NBIDX(Nmax,Nmax), upv(3, Nmax), &
         upm(6, Nmax))
-    
-    
-    call c_f_pointer(allocate_aligned(16*RP)  , LJA, (/ 16 /))
-    call c_f_pointer(allocate_aligned(16*RP)  , LJC, (/ 16 /))
 include 'species.f90'
 end subroutine
 
 
 subroutine vgwcleanup()
     deallocate(NNB, NBIDX, UPV, UPM)
-    call posix_free(c_loc(LJA))
-    call posix_free(c_loc(LJC))
-end subroutine
-
-subroutine unpack_g(y, g)
-    double precision, intent(in) :: y(:)
-    double precision, intent(out) :: g(:,:,:)
-    integer :: i, k
-
-    i=0
-    do k=3*Natom+1,9*Natom,6
-        i=i+1
-        g(:,1,i) = y(k : k+2)
-        g(1, 2, i) = y(k+1)
-        g(2:3,2,i) = y(k+3 : k+4)
-        g(1, 3, i) = y(k+2)
-        g(2, 3, i) = y(k+4)
-        g(3, 3, i) = y(k+5)
-    end do
 end subroutine
 
 include 'interaction_lists.f90'
 include 'vgw0.f90'
-!include 'vgw1.f90'
 include 'rhss0.f90'
-!include 'rhss1.f90'
 
 end module vgw
 

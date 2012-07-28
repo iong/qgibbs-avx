@@ -1,8 +1,19 @@
 #include <math.h>
 #include <stdlib.h>
+#include <string.h>
+#include <stdio.h>
 #include <immintrin.h>
 
 static float  expav[8] __attribute__((aligned(32)));
+
+static int NGAUSS, Natom, *nnb, *nbidx, nnbmax;
+double bl, bl2;
+
+static float  LJA[16] __attribute__((aligned(32)));
+static float  LJC[16] __attribute__((aligned(32)));
+static float *dq, *GC, *U0, *UX0, *UXX0;
+
+
 
 static inline __m256 vmuladd3e(__m256 rx1, __m256 ry1, __m256 rx2, __m256 ry2, __m256 rx3, __m256 ry3)
 {
@@ -18,7 +29,6 @@ static inline __m256 vmuladd3e(__m256 rx1, __m256 ry1, __m256 rx2, __m256 ry2, _
 
 static inline __m256 invdetinv_avx(__m256 *a, __m256 *ia)
 {
-	__m256 detia;
 	ia[0] = _mm256_sub_ps(_mm256_mul_ps(a[3], a[5]), _mm256_mul_ps(a[4], a[4]));
 	ia[1] = _mm256_sub_ps(_mm256_mul_ps(a[2], a[4]), _mm256_mul_ps(a[1], a[5]));
 	ia[2] = _mm256_sub_ps(_mm256_mul_ps(a[1], a[4]), _mm256_mul_ps(a[2], a[3]));
@@ -26,7 +36,9 @@ static inline __m256 invdetinv_avx(__m256 *a, __m256 *ia)
 	ia[4] = _mm256_sub_ps(_mm256_mul_ps(a[2], a[1]), _mm256_mul_ps(a[0], a[4]));
 	ia[5] = _mm256_sub_ps(_mm256_mul_ps(a[0], a[3]), _mm256_mul_ps(a[1], a[1]));
 
-	detia = _mm256_add_ps(_mm256_mul_ps(ia[0], a[0]), _mm256_mul_ps(ia[1], a[1]));
+	__m256 m1 =_mm256_mul_ps(ia[0], a[0]);
+	__m256 detia = _mm256_mul_ps(ia[1], a[1]);
+	detia = _mm256_add_ps(detia, m1);
 	detia = _mm256_add_ps(detia, _mm256_mul_ps(ia[2], a[2]));
 	detia = _mm256_rcp_ps(detia);
 
@@ -40,7 +52,7 @@ static inline __m256 invdetinv_avx(__m256 *a, __m256 *ia)
 	return detia;
 }
 
-static void inline vgw_kernel_avx1(int first, int stride, int NGAUSS, float *LJA, float *LJC, float *q, float *GC, float *U, float *UX0, float *UXX0)
+static void inline vgw_kernel_avx(int first, int stride, float *q, float *GC, float *U, float *UX0, float *UXX0)
 {
     int IG, i, j;
     __m256 dq[3], gc[6], a[6], deta;
@@ -50,9 +62,11 @@ static void inline vgw_kernel_avx1(int first, int stride, int NGAUSS, float *LJA
 
     deta = invdetinv_avx(gc, a);
 
-    __m256 ux0[3], uxx0[6], Ulocal;
+    __m256 ux0[3], uxx0[6];
     for (i=0; i<3; i++) ux0[i] = _mm256_setzero_ps();
     for (i=0; i<6; i++) uxx0[i] = _mm256_setzero_ps();
+    __m256 Ulocal =  _mm256_setzero_ps();
+
 
     for(IG=0; IG<NGAUSS; IG++) {
 	__m256 lja_ig = _mm256_broadcast_ss(LJA+IG);
@@ -90,8 +104,13 @@ static void inline vgw_kernel_avx1(int first, int stride, int NGAUSS, float *LJA
 
 	Ulocal = _mm256_add_ps(Ulocal, v0);
 
+	__m256 thresh = _mm256_set_ps(1e3, 1e3, 1e3, 1e3, 1e3, 1e3, 1e3, 1e3);
+	__m256 mask = _mm256_set_ps(-0.0f, -0.0f, -0.0f, -0.0f, -0.0f, -0.0f, -0.0f, -0.0f);
 	for (j=0; j<3; j++) {
 	    ux0[j] = _mm256_sub_ps(ux0[j], _mm256_mul_ps(v0, Zq[j]));
+	    if (_mm256_movemask_ps(_mm256_cmp_ps(_mm256_andnot_ps(mask, ux0[j]), thresh, _CMP_GT_OS)) & 0xff) {
+		    printf("%d, %d, %d\n", first, IG, j);
+	    }
 	}
 
 	uxx0[0] = _mm256_add_ps(uxx0[0], _mm256_mul_ps(v0, _mm256_sub_ps(_mm256_mul_ps(two, _mm256_mul_ps(Zq[0], Zq[0])), z[0])));
@@ -109,42 +128,24 @@ static void inline vgw_kernel_avx1(int first, int stride, int NGAUSS, float *LJA
     for (i=0; i<6; i++) _mm256_store_ps(UXX0+first + i*stride, uxx0[i]);
 }
 
-
-double inline vgw_kernel_avx(int NN1, int stride, int NGAUSS, float *LJA, float *LJC, float *q, float *GC, float *UX0, float *UXX0)
+static double min_image(double x)
 {
-	size_t NN18;
-	int i;
-	float *U;
-	double Utot;
+	if (x > bl2) return x - bl;
+	else if (-x > bl2) return bl + x;
 
-
-	NN18 = 8*((NN1 + 7) / 8);
-	posix_memalign((void **)&U, 32L, NN18);
-	for (i=0; i < NN1 + 7; i += 8) {
-		vgw_kernel_avx1(i, stride, NGAUSS, LJA, LJC, q, GC, U, UX0, UXX0);
-	}
-	Utot = 0.0;
-	for (i=0; i<NN1; i++) Utot += U[i];
-
-	free(U);
-
-	return Utot;
+	return x;
 }
 
-extern int Natom;
-extern int nnbmax, *nnbidx, *nnb;
 
-void gaussian_average(int Natom, double *y, double *U, double *UPV, double *UPM)
+void gaussian_average_avx(double *y, double *U, double *UPV, double *UPM)
 {
 	float E3[6] = {1.0, 0.0, 0.0, 1.0, 0.0, 1.0};
+	int	i, j, k;
+	double bl2 = bl / 2.0;
 
 	memset(UPM, 0, Natom*6*sizeof(double));
-	memset(UPV, 0, Natom*sizeof(double));
-	U = 0.0;
-
-	posix_memalign(&dq  , 32, nnbmax*3*sizeof(float));
-	posix_memalign(&UX0 , 32, nnbmax*3*sizeof(float));
-	posix_memalign(&UXX0, 32, nnbmax*6*sizeof(float));
+	memset(UPV, 0, Natom*3*sizeof(double));
+	*U = 0.0;
 
 	for (i=0; i<Natom-1; i++) {
 		int NN1 = nnb[i];	
@@ -152,30 +153,69 @@ void gaussian_average(int Natom, double *y, double *U, double *UPV, double *UPM)
 
 		for (k=0; k<3; k++) {
 			for (j=0; j<NN1; j++) {
-				dq[j + k*nnbmax] = min_image(y[i + k*Natom] - y[nbidx[i][j] + k*Natom], bl);
+				dq[j + k*nnbmax] = min_image(y[i + k*Natom] - y[nbidx[Natom*i+j] + k*Natom]);
 			}
 			for (j=NN1; j<NN18; j++) dq[j + k*nnbmax] = 1.0;
 		}
 
 		for (k=0; k<6; k++) {
 			for (j=0; j<NN1; j++) {
-				GC[j + k*nnbmax] = y[i + (k+3)*Natom] + y[nbidx[i][j] + (k+3)*Natom];
+				GC[j + k*nnbmax] = y[i + (k+3)*Natom] + y[nbidx[Natom*i+j] + (k+3)*Natom];
 			}
 			for (j=NN1; j<NN18; j++) GC[j + k*nnbmax] = E3[k];
 		}
 
-		U = U + vgw_kernel_avx(NN1, nnbmax, NGAUSS, LJA, LJC, dq, GC, UX0, UXX0);
+		for (j=0; j < NN1; j += 8) {
+			//printf ("%d\n", j);
+			vgw_kernel_avx(j, nnbmax, dq, GC, U0, UX0, UXX0);
+		}
 
 		for (j=0; j<NN1; j++) {
-			for (k=0; k<3; k++) UPV[k + 3*i           ] += UX0[j+k*nnbmax];
-			for (k=0; k<3; k++) UPV[k + 3*nbidx[i][j] ] -= UX0[j+k*nnbmax];
+			*U += U0[j];
 
-			for (k=0; k<6; k++) UPM[k + 6*i           ] += UXX0[j+k*nnbmax];
-			for (k=0; k<6; k++) UPM[k + 6*nbidx[i][j] ] += UXX0[j+k*nnbmax];
+			for (k=0; k<3; k++) UPV[k + 3*i                ] += UX0[j+k*nnbmax];
+			for (k=0; k<3; k++) UPV[k + 3*nbidx[Natom*i+j] ] -= UX0[j+k*nnbmax];
+
+			for (k=0; k<6; k++) UPM[k + 6*i                ] += UXX0[j+k*nnbmax];
+			for (k=0; k<6; k++) UPM[k + 6*nbidx[Natom*i+j] ] += UXX0[j+k*nnbmax];
 		}
 	}
 
+}
+
+
+void gaussian_average_avx_init(int iNatom, int *innb, int *inbidx, int innbmax, float *iLJA, float *iLJC, int iNGAUSS, double ibl)
+{
+	int i;
+
+	Natom = iNatom;
+	nnb = innb;
+	nbidx = inbidx;
+	nnbmax = innbmax;
+
+	posix_memalign((void **)&dq  , 32, nnbmax*3*sizeof(float));
+	posix_memalign((void **)&GC  , 32, nnbmax*6*sizeof(float));
+	posix_memalign((void **)&U0 ,  32, nnbmax*sizeof(float));
+	posix_memalign((void **)&UX0 , 32, nnbmax*3*sizeof(float));
+	posix_memalign((void **)&UXX0, 32, nnbmax*6*sizeof(float));
+
+	NGAUSS = iNGAUSS;
+	bl = ibl;
+	bl2 = bl / 2.0;
+
+	for (i=0; i<NGAUSS; i++) {
+		LJA[i] = iLJA[i];
+		LJC[i] = iLJC[i];
+	}
+
+
+}
+
+void gaussian_average_avx_cleanup()
+{
 	free(dq);
+	free(GC);
+	free(U0);
 	free(UX0);
 	free(UXX0);
 }
