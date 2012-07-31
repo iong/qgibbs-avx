@@ -30,7 +30,7 @@ SUBROUTINE vgw0(Q0, BL_, beta,Ueff, rt)
 
     y(3*Natom+1:) = 0d0
 
-    call       presort_ppc(y(1:Natom), y(Natom+1:2*Natom), y(2*Natom+1:3*Natom), 4)
+    call       presort_ppc(y(1:Natom), y(Natom+1:2*Natom), y(2*Natom+1:3*Natom), 8)
     call interaction_lists(y(1:Natom), y(Natom+1:2*Natom), y(2*Natom+1:3*Natom))
 
     !allocate(qZq(nnbmax), expav(nnbmax), v0(nnbmax), Zq(nnbmax, 3), &
