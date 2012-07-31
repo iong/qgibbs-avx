@@ -7,7 +7,7 @@ subroutine interaction_lists(x, y, z)
     N = size(x)
     rc2=rc**2
 !$omp parallel
-!$OMP DO SCHEDULE(DYNAMIC) PRIVATE(I, J, QIJ, RSQ)
+!$OMP DO SCHEDULE(DYNAMIC) PRIVATE(I, J, RSQ,NN)
     do I=1,N-1
         NN = 0
         rsq(i+1:) = min_image(x(i) - x(i+1:), bl)**2 &

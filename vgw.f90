@@ -42,15 +42,19 @@ module vgw
 
 contains
 
+
 subroutine vgwinit(Nmax_, species, M, rcutoff, massx)
+!$  use omp_lib
     implicit none
     integer, intent(in) :: Nmax_
     character(*), intent(in) :: species
     real*8, intent(in), optional :: M, rcutoff, massx
+    integer :: nmax_threads = 1
 
     Nmax = Nmax_
-    allocate(NNB(Nmax), NBIDX(Nmax,Nmax), upv(3, Nmax), &
-        upm(6, Nmax))
+!$  nmax_threads = omp_get_max_threads()
+    allocate(NNB(Nmax), NBIDX(Nmax,Nmax), upv(3, Nmax*nmax_threads), &
+        upm(6, Nmax*nmax_threads))
 include 'species.f90'
 end subroutine
 

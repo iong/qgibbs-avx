@@ -19,7 +19,7 @@ SUBROUTINE RHSS0(NEQ, T, Y, YP)
     call gaussian_average_avx(y, U, UPV, UPM)
 
     TRUXXG = 0d0
-    !$omp do schedule(static) reduction(+:TRUXXG)
+!$omp parallel do schedule(static) reduction(+:TRUXXG) private(QP_,qidx,gidx,G,GU,GUG)
     do i1=1,Natom
         qidx=   (/ (I1 + J*Natom, J=0,2) /)
         gidx=   (/ (I1 + J*Natom, J=3,8) /)
@@ -44,7 +44,7 @@ SUBROUTINE RHSS0(NEQ, T, Y, YP)
         yp(qidx) = QP_
         yp(gidx) = GUG
     end do
-    !$omp end do
+!$omp end parallel do
 
     yp(NEQ) = -(0.25d0*TRUXXG + U)/real(Natom)
 END SUBROUTINE RHSS0
@@ -62,8 +62,8 @@ subroutine gaussian_average(y, U, UPV, UPM)
     UPV = 0.0d0
 
     U = 0d0
-    !$omp parallel private(x12, y12, z12, DETA, invDETAG, qZq, expav, v0, Zq, GC, A, AG, Z, UX0, UXX0, UPV1, UPM1, J, IG, NN1)
-    !$omp do schedule(dynamic) reduction(+:U,UPV, UPM)
+!!    !$omp parallel private(x12, y12, z12, DETA, invDETAG, qZq, expav, v0, Zq, GC, A, AG, Z, UX0, UXX0, UPV1, UPM1, J, IG, NN1)
+!!    !$omp do schedule(dynamic) reduction(+:U,UPV, UPM)
     do I1=1,Natom-1
         NN1 = NNB(I1)
         if (NN1 == 0) cycle
@@ -86,7 +86,7 @@ subroutine gaussian_average(y, U, UPV, UPM)
             UPM(:,nbidx(J,I1)) = UPM(:,nbidx(J,I1)) + UXX0(J,:)
         end do
     ENDDO ! I
-    !$omp end do
+!!    !$omp end do
 end subroutine
 
 
