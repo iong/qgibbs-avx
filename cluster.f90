@@ -5,7 +5,7 @@ program cluster
     implicit none
     integer, parameter :: Npts=20
     integer :: i, N
-    double precision :: U(Npts, 2), kT=.1, BL=100.0, deBoer=0.078, beta
+    double precision :: U(Npts, 2)=0d0, kT=.1, BL=100.0, deBoer=0.078, beta
     double precision, allocatable :: r(:,:), r0(:,:)
     double precision :: LNP, ENRG, sf, endtime(2), begtime(2)
     character(256) :: arg
