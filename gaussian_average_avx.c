@@ -12,7 +12,7 @@ static float  expav[8] __attribute__((aligned(32)));
 #pragma omp threadprivate(expav)
 
 static int NGAUSS, Natom, *nnb, *nbidx, nnbmax;
-double bl, bl2;
+float bl, bl2;
 
 static float  LJA[16] __attribute__((aligned(32)));
 static float  LJC[16] __attribute__((aligned(32)));
@@ -131,12 +131,20 @@ static void vgw_kernel_avx(int first, int stride, float *q, float *GC, float *U,
     for (i=0; i<6; i++) _mm256_store_ps(UXX0+first + i*stride, uxx0[i]);
 }
 
-static double min_image(double x)
+static void min_image(int n, int stride, float *dq)
 {
-	if (x > bl2) return x - bl;
-	else if (-x > bl2) return bl + x;
+	int	i, k;
 
-	return x;
+	for (k=0; k<3; k++) {
+		for (i=k*stride; i<k*stride+n; i++) {
+			if (dq[i] > bl2) {
+				dq[i] =  dq[i] - bl;
+			}
+			else if (-dq[i] > bl2) {
+				dq[i] = bl + dq[i];
+			}
+		}
+	}
 }
 
 
@@ -155,69 +163,82 @@ void gaussian_average_avx(double *y, double *Uout, double *UPV, double *UPM)
 		int	tid=0;
 		int	i;
 #ifdef _OPENMP
-		int	nthreads = omp_get_num_threads();
-		tid = omp_get_thread_num();
+	int	nthreads = omp_get_num_threads();
+	tid = omp_get_thread_num();
 #endif
 
-		memset(UPV+3*Natom*tid, 0, Natom*3*sizeof(double));
-		memset(UPM+6*Natom*tid, 0, Natom*6*sizeof(double));
+	memset(UPV+3*Natom*tid, 0, Natom*3*sizeof(double));
+	memset(UPM+6*Natom*tid, 0, Natom*6*sizeof(double));
+#pragma omp master
+	{*Uout = 0.0;}
 
-		posix_memalign((void **)&dq  , 32, nnbmax*3*sizeof(float));
-		posix_memalign((void **)&GC  , 32, nnbmax*6*sizeof(float));
-		posix_memalign((void **)&U0 ,  32, nnbmax*sizeof(float));
-		posix_memalign((void **)&UX0 , 32, nnbmax*3*sizeof(float));
-		posix_memalign((void **)&UXX0, 32, nnbmax*6*sizeof(float));
+	posix_memalign((void **)&dq  , 32, nnbmax*3*sizeof(float));
+	posix_memalign((void **)&GC  , 32, nnbmax*6*sizeof(float));
+	posix_memalign((void **)&U0 ,  32, nnbmax*sizeof(float));
+	posix_memalign((void **)&UX0 , 32, nnbmax*3*sizeof(float));
+	posix_memalign((void **)&UXX0, 32, nnbmax*6*sizeof(float));
 
-		//printf("%d: %x, %x\n", tid, expav, dq);
+	//printf("%d: %x, %x\n", tid, expav, dq);
 
-#pragma omp for schedule(dynamic, 16) reduction(+:U)
-		for (i=0; i<Natom-1; i++) {
-			int j, k;
-			int NN1 = nnb[i];	
-			int NN18 = 8*((NN1 + 7) / 8);
+#pragma omp for schedule(dynamic, 16)
+	for (i=0; i<Natom-1; i++) {
+		int j, k;
+		int NN1 = nnb[i];	
+		int NN18 = 8*((NN1 + 7) / 8);
 
-			for (k=0; k<3; k++) {
-				int qoffset = k*Natom;
-				int dqoffset = k*nnbmax;
-				for (j=0; j<NN1; j++) {
-					dq[j + dqoffset] = min_image(y[i + qoffset] - y[nbidx[Natom*i+j] + qoffset]);
-				}
-				for (j=NN1; j<NN18; j++) dq[j + dqoffset] = 1.0;
-			}
+		for (j=0; j<NN1; j++) {
+			int ioffset = 3*i;
+			int joffset = 3*(nbidx[Natom*i+j] - 1);
 
-			for (k=0; k<6; k++) {
-				int Goffset = (k+3)*Natom;
-				int GCoffset = k*nnbmax;
-				for (j=0; j<NN1; j++) {
-					GC[j + GCoffset] = y[i + Goffset] + y[nbidx[Natom*i+j] + Goffset];
-				}
-				for (j=NN1; j<NN18; j++) GC[j + GCoffset] = E3[k];
-			}
+			for (k=0; k<3; k++)
+				dq[k*nnbmax + j] = y[k + ioffset] - y[k + joffset];
 
-			for (j=0; j < NN1; j += 8) {
-				//printf ("%d\n", j);
-				vgw_kernel_avx(j, nnbmax, dq, GC, U0, UX0, UXX0);
-			}
-
-			for (j=0; j<NN1; j++) {
-				U += U0[j];
-
-				for (k=0; k<3; k++) UPV[k + 3*(i                + Natom*tid)] += UX0[j+k*nnbmax];
-				for (k=0; k<3; k++) UPV[k + 3*(nbidx[Natom*i+j] + Natom*tid)] -= UX0[j+k*nnbmax];
-
-				for (k=0; k<6; k++) UPM[k + 6*(i                + Natom*tid)] += UXX0[j+k*nnbmax];
-				for (k=0; k<6; k++) UPM[k + 6*(nbidx[Natom*i+j] + Natom*tid)] += UXX0[j+k*nnbmax];
-			}
+			ioffset = 3*Natom + 6*i;
+			joffset = 3*Natom + 6*(nbidx[Natom*i + j]-1);
+			for (k=0; k<6; k++)
+				GC[k*nnbmax + j] = y[k + ioffset] + y[k + joffset];
 		}
+		min_image(NN1, nnbmax, dq);
+
+		for (k=0; k<3; k++) 
+			for (j=NN1; j<NN18; j++)
+				dq[k*nnbmax + j] = 1.0;
+
+		for (k=0; k<6; k++) 
+			for (j=NN1; j<NN18; j++)
+				GC[k*nnbmax + j] = E3[k];
+
+		for (j=0; j < NN1; j += 8) {
+			//printf ("%d\n", j);
+			vgw_kernel_avx(j, nnbmax, dq, GC, U0, UX0, UXX0);
+		}
+
+		for (j=0; j<NN1; j++) {
+			int idest = Natom*tid + i;
+			int jdest = Natom*tid + nbidx[Natom*i+j] - 1;
+
+			U += U0[j];
+
+			for (k=0; k<3; k++) UPV[k + 3*idest] += UX0[j+k*nnbmax];
+			for (k=0; k<3; k++) UPV[k + 3*jdest] -= UX0[j+k*nnbmax];
+
+			for (k=0; k<6; k++) UPM[k + 6*idest] += UXX0[j+k*nnbmax];
+			for (k=0; k<6; k++) UPM[k + 6*jdest] += UXX0[j+k*nnbmax];
+		}
+	}
+
+#pragma omp critical
+	{*Uout += U;}
+
 #ifdef _OPENMP
 #pragma omp for schedule(static)
-		for (i=0; i<Natom; i++) {
-			int j, k;
-			for (j=1; j<nthreads; j++) {
-				for (k=0; k<3; k++) UPV[k+3*i] += UPV[k+3*(i + Natom*j)];
-				for (k=0; k<6; k++) UPM[k+6*i] += UPM[k+6*(i + Natom*j)];
-			}
+	for (i=0; i<Natom; i++) {
+		int j, k;
+		for (j=1; j<nthreads; j++) {
+			for (k=0; k<3; k++) UPV[k+3*i] += UPV[k+3*(i + Natom*j)];
+			for (k=0; k<6; k++) UPM[k+6*i] += UPM[k+6*(i + Natom*j)];
 		}
+	}
 #endif
 
 		free(dq);

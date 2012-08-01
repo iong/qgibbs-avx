@@ -1,21 +1,25 @@
-subroutine interaction_lists(x, y, z)
+subroutine interaction_lists(r)
     implicit none
-    real*8, intent(in) :: x(:), y(:), z(:)
-    integer :: I,J, NN, N
-    real*8 :: rsq(size(x)),rc2
+    real*8, intent(in) :: r(3,Natom)
+    integer :: I,J, NN
+    real*8 :: rsq,rcsq, dr(3), bl2
+    
 
-    N = size(x)
-    rc2=rc**2
-!$omp parallel
-!$OMP DO SCHEDULE(DYNAMIC) PRIVATE(I, J, RSQ,NN)
-    do I=1,N-1
+    rcsq=rc**2
+    bl2=0.5*bl
+!$OMP DO SCHEDULE(DYNAMIC) PRIVATE(J, RSQ, dr, NN)
+    do I=1,Natom-1
         NN = 0
-        rsq(i+1:) = min_image(x(i) - x(i+1:), bl)**2 &
-                  + min_image(y(i) - y(i+1:), bl)**2 &
-                  + min_image(z(i) - z(i+1:), bl)**2
+        do J=I+1,Natom
+            dr = r(:,j) - r(:,i)
+
+            where (abs(dr) > bl2)
+                dr  = dr - sign(bl, dr)
+            end where
+
+            rsq = sum(dr**2)
  
-        do J=I+1,N
-            if(rsq(j) <= rc2) then
+            if(rsq <= rcsq) then
                 NN = NN + 1
                 NBIDX(NN, I) = J
             endif
@@ -23,9 +27,10 @@ subroutine interaction_lists(x, y, z)
         NNB(i) = NN
     enddo
 !$OMP ENDDO
-!$omp end parallel
 
-    NNB(N) = 0
+!$omp master
+    NNB(Natom) = 0
     nnbmax = maxval(nnb)
     nnbmax = (nnbmax/8 + 1) * 8
+!$omp end master
 end subroutine interaction_lists

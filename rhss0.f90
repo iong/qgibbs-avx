@@ -21,14 +21,12 @@ SUBROUTINE RHSS0(NEQ, T, Y, YP)
     TRUXXG = 0d0
 !$omp parallel do schedule(static) reduction(+:TRUXXG) private(QP_,qidx,gidx,G,GU,GUG)
     do i1=1,Natom
-        qidx=   (/ (I1 + J*Natom, J=0,2) /)
-        gidx=   (/ (I1 + J*Natom, J=3,8) /)
+        G = y(3*Natom + 6*I1-5 : 3*Natom + 6*I1)
+        UPM1 = UPM(:,I1)
 
-        G = y(gidx)
-
-        TRUXXG = TRUXXG +     G(1)*UPM(1,I1) + 2d0*G(2)*UPM(2,I1) &
-	                    + 2d0*G(3)*UPM(3,I1) +     G(4)*UPM(4,I1) &
-                        + 2d0*G(5)*UPM(5,I1) +     G(6)*UPM(6,I1)
+        TRUXXG = TRUXXG +     G(1)*UPM1(1) + 2d0*G(2)*UPM1(2) &
+                        + 2d0*G(3)*UPM1(3) +     G(4)*UPM1(4) &
+                        + 2d0*G(5)*UPM1(5) +     G(6)*UPM1(6)
 
         QP_(1) = -G(1)*UPV(1,I1) - G(2)*UPV(2,I1) - G(3)*UPV(3,I1)
         QP_(2) = -G(2)*UPV(1,I1) - G(4)*UPV(2,I1) - G(5)*UPV(3,I1)
@@ -41,8 +39,8 @@ SUBROUTINE RHSS0(NEQ, T, Y, YP)
         GUG(4) = GUG(4) + invmass
         GUG(6) = GUG(6) + invmass
 
-        yp(qidx) = QP_
-        yp(gidx) = GUG
+        yp(3*I1-2 : 3*I1) = QP_
+        yp(3*Natom + 6*I1-5 : 3*Natom + 6*I1) = GUG
     end do
 !$omp end parallel do
 

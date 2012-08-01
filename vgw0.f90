@@ -21,23 +21,7 @@ SUBROUTINE vgw0(Q0, BL_, beta,Ueff, rt)
 
     LRW = 20 + 16*NEQ
     LIW = 30
-
-    allocate(Y(NEQ), YP(NEQ), ATOL(NEQ), RWORK(LRW), IWORK(LIW))
-
-    y(        1 :   Natom) = Q0(1,:)
-    y(  Natom+1 : 2*Natom) = Q0(2,:)
-    y(2*Natom+1 : 3*Natom) = Q0(3,:)
-
-    y(3*Natom+1:) = 0d0
-
-    call       presort_ppc(y(1:Natom), y(Natom+1:2*Natom), y(2*Natom+1:3*Natom), 8)
-    call interaction_lists(y(1:Natom), y(Natom+1:2*Natom), y(2*Natom+1:3*Natom))
-
-    !allocate(qZq(nnbmax), expav(nnbmax), v0(nnbmax), Zq(nnbmax, 3), &
-    !    GC(nnbmax, 6), A(nnbmax, 6), AG(nnbmax, 6) Z(nnbmax, 6), DETA(nnbmax),&
-    !    invDETAG(nnbmax) )
-    call adjust_nbidx_for_c()
-    call gaussian_average_avx_init(Natom, nnb, nbidx, nnbmax, LJA, LJC, NGAUSS, bl)
+    allocate(Y(NEQ), ATOL(NEQ), RWORK(LRW), IWORK(LIW))
 
     ITOL=2
     RTOL=0
@@ -49,8 +33,9 @@ SUBROUTINE vgw0(Q0, BL_, beta,Ueff, rt)
     ISTATE=1
     IOPT = 1
     MF=10
-    IWORK=0
 
+
+    IWORK=0
     IWORK(6) = 50000 !MXSTEP
 
     RWORK(5)=dt0
@@ -58,22 +43,28 @@ SUBROUTINE vgw0(Q0, BL_, beta,Ueff, rt)
     RWORK(7)=dtmin
     
     T = 0
-
-    call cpu_time(start_time)
     TSTOP = 0.5d0*beta
-    CALL DLSODE(RHSS0,NEQ,Y,T,TSTOP,ITOL,RTOL,ATOL,ITASK,ISTATE,IOPT,&
-        RWORK,LRW,IWORK,LIW,JAC,MF)
 
+    y(1 : 3*Natom) = reshape(q0, (/3*Natom/))
+    y(3*Natom+1:) = 0d0
 
-    LOGDET=sum(log(pdetm_s(reshape(y(3*Natom+1:9*Natom), (/Natom, 6/)))))
-    call cpu_time(stop_time)
+    call       presort_ppc(y(1:3*Natom), 8)
+
+    call interaction_lists(y(1:3*Natom))
+
+        call gaussian_average_avx_init(Natom, nnb, nbidx, nnbmax, LJA, LJC, NGAUSS, bl)
+        CALL DLSODE(RHSS0,NEQ,Y,T,TSTOP,ITOL,RTOL,ATOL,ITASK,ISTATE,IOPT,&
+            RWORK,LRW,IWORK,LIW,JAC,MF)
+    LOGDET=0d0
+    DO j=3*Natom+1,9*Natom,6
+        LOGDET = LOGDET + LOG( DETM_S(y(j : j+5)) )
+    ENDDO
 
     logrho = 2.0*Natom*y(NEQ) - 0.5*LOGDET - 1.5*Natom*log(4.0*M_PI)
     ncalls = IWORK(12)
     !write (*,*) IWORK(11), 'steps,', IWORK(12), ' RHSS calls, logdet =', logdet
 
-    deallocate(y, yp, RWORK, IWORK, ATOL)
-    !allocate(qZq, expav, v0, Zq, GC, A, AG Z, DETA, invDETAG )
+    deallocate(y, RWORK, IWORK, ATOL)
     call gaussian_average_avx_cleanup()
 
     Ueff = -logrho/beta
@@ -83,44 +74,43 @@ SUBROUTINE vgw0(Q0, BL_, beta,Ueff, rt)
 END SUBROUTINE
 
 
-subroutine presort_ppc(x, y, z, nppc)
+subroutine presort_ppc(r, nppc)
     use utils, only: index_sort
     implicit none
-    double precision, intent(inout) :: x(:), y(:), z(:)
+    double precision, intent(inout) :: r(3,Natom)
     integer, intent(in) :: nppc
 
     integer(c_size_t) :: i, N
-    integer(c_int) :: idx(size(x)), nunits
-    real(c_double) :: z_(size(x))
-    double precision :: bu, cbl, minx, miny, minz, maxx, maxy, maxz, sysbox
+    integer(c_int) :: idx(Natom), nunits
+    real(c_double) :: z_(Natom), r_(3,Natom)
+    double precision :: bu, cbl, ll(3), ur(3), sysbox
 
-    minx = minval(x); miny = minval(y); minz = minval(z) 
-    maxx = maxval(x); maxy = maxval(y); maxz = maxval(z) 
-    sysbox = max(maxx-minx, maxy-miny, maxz-minz)
+    ll = minval(r, 2)
+    ur = maxval(r, 2)
+    sysbox = maxval(ur - ll)
 
-    N = size(x)
     cbl = bl
 
     ! cluster
     if (bl > 2*sysbox) then
-        nunits = nint(2.0 * (0.75*N/(M_PI*nppc))**(1.0/3.0))
+        nunits = nint(2.0 * (0.75*Natom/(M_PI*nppc))**(1.0/3.0))
         cbl = sysbox
     else
-        nunits = nint((real(N)/real(nppc))**(1.0/3.0))
+        nunits = nint((real(Natom)/real(nppc))**(1.0/3.0))
     end if
 
     bu = cbl / nunits
 
     
-    forall (i=1:N) idx(i) = i
+    forall (i=1:Natom) idx(i) = i
     
-    z_ = ( floor((x - minx) / bu) * nunits + floor( (y - miny) / bu ) ) * cbl + z - minz    
+    z_ = ( floor((r(1,:) - ll(1)) / bu) * nunits + floor( (r(2,:) - ll(2)) / bu ) ) * cbl + r(3,:) - ll(3)    
     
+    N = Natom
     call index_sort(N, idx, z_)
 
-    z_ = x(idx); x = z_
-    z_ = y(idx); y = z_
-    z_ = z(idx); z = z_
+    r_ = r(:,idx)
+    r = r_
 end subroutine presort_ppc
 
 subroutine adjust_nbidx_for_c()
