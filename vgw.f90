@@ -30,7 +30,7 @@ module vgw
             integer(c_int), value :: Natom, nnbmax, NGAUSS
             integer(c_int) :: nnb(*), nbidx(*)
             real(c_float) :: LJA(*), LJC(*)
-            real(c_double) :: BL
+            real(c_double), value :: BL
         end subroutine
         subroutine gaussian_average_avx(y, U, UPV, UPM) bind(c)
             use iso_c_binding
