@@ -1,4 +1,5 @@
 SUBROUTINE vgw0(Q0, BL_, beta,Ueff, rt)
+!$  use omp_lib
     IMPLICIT NONE
     double precision, intent(in) :: Q0(:,:), beta, BL_
     double precision, intent(out) :: Ueff
@@ -9,6 +10,7 @@ SUBROUTINE vgw0(Q0, BL_, beta,Ueff, rt)
     double precision, allocatable :: Y(:), RWORK(:), YP(:), ATOL(:)
     integer, allocatable :: IWORK(:)
 
+    integer :: tid = 0
     integer :: NEQ, ITOL, ITASK, IOPT, MF, ISTATE, LRW, LIW
     double precision :: RTOL
     double precision, pointer, dimension(:, :) :: G
@@ -50,11 +52,39 @@ SUBROUTINE vgw0(Q0, BL_, beta,Ueff, rt)
 
     call       presort_ppc(y(1:3*Natom), 8)
 
+    dlsode_done=.FALSE.
+    !print *, 'OAK',   omp_get_thread_num(), omp_get_wtime()
+    tid = 0
+!$omp parallel private(tid)
+
     call interaction_lists(y(1:3*Natom))
 
+!$    tid = omp_get_thread_num()
+
+    rhss_done = .FALSE.
+
+    if (tid == 0) then
+        !print *, 'master entry', omp_get_thread_num(), omp_get_wtime()
         call gaussian_average_avx_init(Natom, nnb, nbidx, nnbmax, LJA, LJC, NGAUSS, bl)
         CALL DLSODE(RHSS0,NEQ,Y,T,TSTOP,ITOL,RTOL,ATOL,ITASK,ISTATE,IOPT,&
             RWORK,LRW,IWORK,LIW,JAC,MF)
+        dlsode_done = .TRUE.
+        call rhss0(NEQ,0d0,Y,Y)
+        !print *, 'master exit', omp_get_thread_num(), omp_get_wtime()
+    else
+        !print *, 'Entering tid =', omp_get_thread_num(), dlsode_done, omp_get_wtime()
+        do
+            call rhss0(NEQ,0d0,Y,Y)
+            if (rhss_done) then
+                !print *, 'Exiting tid=', tid, rhss_done, omp_get_wtime()
+                exit
+            end if
+        end do
+    end if
+
+!$omp end parallel
+    !print *, 'if exit tid=',  omp_get_thread_num(), omp_get_wtime()
+
     LOGDET=0d0
     DO j=3*Natom+1,9*Natom,6
         LOGDET = LOGDET + LOG( DETM_S(y(j : j+5)) )

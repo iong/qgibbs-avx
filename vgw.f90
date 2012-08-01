@@ -9,15 +9,16 @@ module vgw
     real(c_double) :: BL, rfullmatsq
     real(c_float) :: LJA(16), LJC(16)
     integer(c_int) :: NGAUSS
+
     integer, allocatable :: NBIDX(:,:), NNB(:)
+    integer(c_int) :: nnbmax
     
     real*8 :: U, TRUXXG
     real*8, allocatable :: UPV(:,:), UPM(:,:)
     
     real*8 :: invmass, RC, mass, dt0, dtmax, dtmin, vgw_atol(3)
-    logical :: finished
-    integer :: tid=0, nthr=1, thread_start, thread_stop, nnbmax
-!$OMP THREADPRIVATE(tid, thread_start, thread_stop, nnbmax)
+    logical :: dlsode_done=.FALSE., rhss_done
+!$omp threadprivate(rhss_done)
 
     
     real(RP), allocatable, dimension(:) :: qZq, expav, v0, DETA, invDETAG

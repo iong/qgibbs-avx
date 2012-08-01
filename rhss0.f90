@@ -1,15 +1,28 @@
-SUBROUTINE RHSS0(NEQ, T, Y, YP)
+SUBROUTINE RHSS0(NEQ, T, YMASTER, YPMASTER)
     use utils, only: RP
     IMPLICIT NONE
     integer, intent(in) :: NEQ
     double precision, intent(in) :: T
-    double precision, intent(in) , target :: Y(NEQ)
-    double precision, intent(out), target :: YP(NEQ)
+    double precision, intent(in) , target :: YMASTER(NEQ)
+    double precision, intent(out), target :: YPMASTER(NEQ)
 
-    INTEGER :: I1, J, qidx(3), gidx(6)
+    double precision, pointer, save :: Y(:), YP(:)
 
-    real(8) :: GU(6), GUG(6), QP_(3), G(6)
+    INTEGER :: I1, J
 
+    real(8) :: GU(6), GUG(6), QP_(3), G(6), UPM1(6)
+    !real(8), pointer :: G(:)
+
+!$omp master
+    Y => YMASTER
+    YP => YPMASTER
+    TRUXXG = 0d0
+!$omp end master
+!$omp barrier
+    if (dlsode_done) then
+        rhss_done=.TRUE.
+        return
+    end if
 
     if (y(3*Natom+1) == 0.0) then
         call rhss_zero_time(NEQ, y, yp)
@@ -18,8 +31,7 @@ SUBROUTINE RHSS0(NEQ, T, Y, YP)
 
     call gaussian_average_avx(y, U, UPV, UPM)
 
-    TRUXXG = 0d0
-!$omp parallel do schedule(static) reduction(+:TRUXXG) private(QP_,qidx,gidx,G,GU,GUG)
+!$omp do schedule(static) reduction(+:TRUXXG)
     do i1=1,Natom
         G = y(3*Natom + 6*I1-5 : 3*Natom + 6*I1)
         UPM1 = UPM(:,I1)
@@ -42,9 +54,11 @@ SUBROUTINE RHSS0(NEQ, T, Y, YP)
         yp(3*I1-2 : 3*I1) = QP_
         yp(3*Natom + 6*I1-5 : 3*Natom + 6*I1) = GUG
     end do
-!$omp end parallel do
+!$omp end do
 
+!$omp master
     yp(NEQ) = -(0.25d0*TRUXXG + U)/real(Natom)
+!$omp end master
 END SUBROUTINE RHSS0
 
 subroutine gaussian_average(y, U, UPV, UPM)
@@ -60,8 +74,6 @@ subroutine gaussian_average(y, U, UPV, UPM)
     UPV = 0.0d0
 
     U = 0d0
-!!    !$omp parallel private(x12, y12, z12, DETA, invDETAG, qZq, expav, v0, Zq, GC, A, AG, Z, UX0, UXX0, UPV1, UPM1, J, IG, NN1)
-!!    !$omp do schedule(dynamic) reduction(+:U,UPV, UPM)
     do I1=1,Natom-1
         NN1 = NNB(I1)
         if (NN1 == 0) cycle
@@ -84,7 +96,6 @@ subroutine gaussian_average(y, U, UPV, UPM)
             UPM(:,nbidx(J,I1)) = UPM(:,nbidx(J,I1)) + UXX0(J,:)
         end do
     ENDDO ! I
-!!    !$omp end do
 end subroutine
 
 
@@ -189,28 +200,46 @@ subroutine rhss_zero_time(NEQ, y, yp)
     double precision, intent(in) :: y(:)
     double precision, intent(out) :: yp(:)
 
-    double precision :: qij(3), qi(3), qj(3)
-    double precision :: rsq(nnbmax)
+    double precision :: dr(3), rsq, bl2
     integer :: i, j
 
-    yp = 0.0d0
+!$omp workshare
+    yp(1:3*Natom) = 0.0d0
+!$omp end workshare
 
-    yp(3*Natom + 1 : 4*Natom) = invmass
-    yp(6*Natom + 1 : 7*Natom) = invmass
-    yp(8*Natom + 1 : 9*Natom) = invmass
-
+!$omp master
     U=0.0d0
+!$omp end master
 
+!$omp do schedule(static)
+    do i=3*Natom+1,9*Natom,6
+        yp(i : i+5) = (/invmass, 0d0, 0d0, invmass, 0d0, invmass/)
+    end do
+!$omp end do
+
+    bl2 = 0.5*bl
+
+!$omp do schedule(dynamic) reduction(+:U) private(rsq, dr, j)
     DO I=1,Natom-1
         if (nnb(i) == 0) cycle
-        rsq(1:NNB(i)) = min_image(y(nbidx(1:NNB(i),i)) - y(          i), bl)**2 &
-            + min_image(y(  Natom + nbidx(1:NNB(i),i)) - y(  Natom + i), bl)**2 &
-            + min_image(y(2*Natom + nbidx(1:NNB(i),i)) - y(2*Natom + i), bl)**2
-        DO J=1,NGAUSS
-            U = U + LJC(J)*sum(EXP(-LJA(J)*rsq(1:NNB(i))))
-        END DO
+        do j=1,nnb(i)
+            dr = y(3*nbidx(j,i) - 2 :  3*nbidx(j,i)) - y(3*i-2:3*i)
+
+            where (abs(dr) > bl2)
+                dr  = dr - sign(bl, dr)
+            end where
+
+            rsq = sum(dr**2)
+
+            U = U + sum(LJC(1:NGAUSS)*EXP(-LJA(1:NGAUSS)*rsq))
+        end do
     ENDDO
+!$omp end do
+
+!$omp master
+    !print *, 'U =', U
 
     yp(NEQ) = -U/real(Natom )
+!$omp end master
 end subroutine
 

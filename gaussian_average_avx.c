@@ -153,15 +153,11 @@ static void min_image(int n, int stride, float *dq)
 void gaussian_average_avx(double *y, double *Uout, double *UPV, double *UPM)
 {
 	float E3[6] = {1.0, 0.0, 0.0, 1.0, 0.0, 1.0};
-	double U;
+	double U=0.0;
 
-	U = 0.0;
-
-#pragma omp parallel
-	{
-		float *dq, *GC, *U0, *UX0, *UXX0;
-		int	tid=0;
-		int	i;
+	float *dq, *GC, *U0, *UX0, *UXX0;
+	int	tid=0;
+	int	i;
 #ifdef _OPENMP
 	int	nthreads = omp_get_num_threads();
 	tid = omp_get_thread_num();
@@ -241,14 +237,14 @@ void gaussian_average_avx(double *y, double *Uout, double *UPV, double *UPM)
 	}
 #endif
 
-		free(dq);
-		free(GC);
-		free(U0);
-		free(UX0);
-		free(UXX0);
-	}
+	free(dq);
+	free(GC);
+	free(U0);
+	free(UX0);
+	free(UXX0);
 
-	*Uout = U;
+// #pragma omp master
+	//printf("%lg\n", *Uout);
 
 }
 
