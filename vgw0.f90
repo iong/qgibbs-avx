@@ -1,25 +1,22 @@
-SUBROUTINE vgw0(Q0, BL_, beta,Ueff, rt)
+SUBROUTINE vgw0(Q0, BL_, beta,Ueff)
 !$  use omp_lib
     IMPLICIT NONE
     double precision, intent(in) :: Q0(:,:), beta, BL_
     double precision, intent(out) :: Ueff
-    double precision, intent(out), optional :: rt
-    real*8 :: LOGDET, logrho, T, TSTOP, start_time, stop_time
+    real*8 :: LOGDET, logrho, T, TSTOP
     integer :: i, j, ncalls
 
-    double precision, allocatable :: Y(:), RWORK(:), YP(:), ATOL(:)
+    double precision, allocatable :: Y(:), RWORK(:), ATOL(:)
     integer, allocatable :: IWORK(:)
 
     integer :: tid = 0
     integer :: NEQ, ITOL, ITASK, IOPT, MF, ISTATE, LRW, LIW
     double precision :: RTOL
-    double precision, pointer, dimension(:, :) :: G
 
     Natom = size(Q0, 2)
     BL = BL_
 
     NEQ = 9*Natom + 1
-    !if (present(WX)) NEQ = NEQ + 12*Natom
 
     LRW = 20 + 16*NEQ
     LIW = 30
@@ -89,6 +86,7 @@ SUBROUTINE vgw0(Q0, BL_, beta,Ueff, rt)
     DO j=3*Natom+1,9*Natom,6
         LOGDET = LOGDET + LOG( DETM_S(y(j : j+5)) )
     ENDDO
+    print *, 'p', LOGDET, y(NEQ)
 
     logrho = 2.0*Natom*y(NEQ) - 0.5*LOGDET - 1.5*Natom*log(4.0*M_PI)
     ncalls = IWORK(12)
@@ -98,9 +96,6 @@ SUBROUTINE vgw0(Q0, BL_, beta,Ueff, rt)
     call gaussian_average_avx_cleanup()
 
     Ueff = -logrho/beta
-    if (present(rt)) then
-        rt = (stop_time - start_time) / real(ncalls)
-     end if
 END SUBROUTINE
 
 
