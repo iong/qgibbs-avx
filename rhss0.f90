@@ -32,7 +32,7 @@ SUBROUTINE RHSS0(NEQ, T, Y, YP)
         QP_(2) = -G(2)*UPV(1,I1) - G(4)*UPV(2,I1) - G(5)*UPV(3,I1)
         QP_(3) = -G(3)*UPV(1,I1) - G(5)*UPV(2,I1) - G(6)*UPV(3,I1)
 
-        GU = mm_ss(G, UPM(:,I1))
+        GU = mm_ss(G, UPM1)
         GUG = -mm_ss(GU, G)
 
         GUG(1) = GUG(1) + invmass
