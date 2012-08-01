@@ -28,6 +28,7 @@ elseif(CMAKE_Fortran_COMPILER_ID STREQUAL GNU)
     set(CMAKE_Fortran_FLAGS "-fimplicit-none -fopenmp")
 
     set(CMAKE_Fortran_FLAGS_DEBUG "-fbacktrace -fbounds-check -ffpe-trap=invalid,zero,overflow,denormal -fimplicit-none -O0 -g")
+    set(CMAKE_Fortran_FLAGS_DEBUG "-fbacktrace -fbounds-check -fimplicit-none -O0 -g")
 
 elseif(CMAKE_Fortran_COMPILER_ID STREQUAL PGI OR CMAKE_C_COMPILER_ID STREQUAL PGI)
     set(CMAKE_Fortran_FLAGS_RELEASE "-fast -O3 -Mvect=sse,simd:256 -Mipa=fast -Minline -tp=bulldozer-64 -Mfprelaxed")
