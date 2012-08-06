@@ -13,8 +13,8 @@ set(BLA_VENDOR "mkl_sequential")
 PROJECT(qgibbs C Fortran)
 
 if (CMAKE_Fortran_COMPILER_ID STREQUAL Intel)
-    set(CMAKE_C_FLAGS "-mavx -openmp")
-    set(CMAKE_Fortran_FLAGS "-heap-arrays -openmp")
+    set(CMAKE_C_FLAGS "-mavx")
+    set(CMAKE_Fortran_FLAGS "-heap-arrays")
     set(CMAKE_Fortran_FLAGS_RELEASE "-O3 -ipo -no-prec-div")
     set(CMAKE_C_FLAGS_RELEASE "-O3 -ipo -no-prec-div")
 
