@@ -35,8 +35,5 @@
         rc = rcutoff
     end if
 
-    if (present(massx)) then
-        mass = massx
-    end if
 
     invmass = 1.0/mass

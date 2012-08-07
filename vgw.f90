@@ -16,8 +16,8 @@ module vgw
     real*8 :: U, TRUXXG
     real*8, allocatable :: UPV(:,:), UPM(:,:)
     
-    real*8 :: invmass, RC, mass, dt0, dtmax, dtmin, vgw_atol(3)
-    logical :: dlsode_done=.FALSE., rhss_done
+    real(c_float) :: invmass, RC, mass, dt0, dtmax, dtmin, vgw_atol(3)
+    logical :: dlsode_done=.FALSE., rhss_done, pbc=.FALSE.
 !$omp threadprivate(rhss_done)
 
     
@@ -44,12 +44,12 @@ module vgw
 contains
 
 
-subroutine vgwinit(Nmax_, species, M, rcutoff, massx)
+subroutine vgwinit(Nmax_, species, M, rcutoff)
 !$  use omp_lib
     implicit none
     integer, intent(in) :: Nmax_
     character(*), intent(in) :: species
-    real*8, intent(in), optional :: M, rcutoff, massx
+    real*8, intent(in), optional :: M, rcutoff
     integer :: nmax_threads = 1
 
     Nmax = Nmax_
