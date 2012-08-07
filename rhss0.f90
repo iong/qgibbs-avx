@@ -61,7 +61,7 @@ SUBROUTINE RHSS0(NEQ, T, YMASTER, YPMASTER)
 
 !$omp master
     U = U + Ulrc
-    yp(NEQ) = -(0.25d0*TRUXXG*LAMBDA + U)/real(Natom)
+    yp(NEQ) = -(0.25d0*TRUXXG + U)/real(Natom)
 !$omp end master
 END SUBROUTINE RHSS0
 
