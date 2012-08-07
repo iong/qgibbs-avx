@@ -77,7 +77,7 @@ program qgibbs
     write (*,*) N, V, bl
 
 
-    write(datadir, '("qgibbs_kT=",F5.2)') kT
+    write(datadir, '("qgibbs_kT=",F6.3)') kT
     call replace_char(datadir, ' ', '0')
     call system('mkdir -p '//trim(datadir))
 
