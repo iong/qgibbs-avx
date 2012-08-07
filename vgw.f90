@@ -13,7 +13,7 @@ module vgw
     integer, allocatable :: NBIDX(:,:), NNB(:)
     integer(c_int) :: nnbmax
     
-    real*8 :: U, TRUXXG
+    real*8 :: U, TRUXXG, UXXlrc, Ulrc
     real*8, allocatable :: UPV(:,:), UPM(:,:)
     
     real(c_float) :: invmass, RC, mass, dt0, dtmax, dtmin, vgw_atol(3)

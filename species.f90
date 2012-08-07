@@ -3,6 +3,10 @@
     dtmax = 0d0
     dtmin = 0d0
 
+
+    Ulrc = 0d0
+    UXXlrc = 0d0
+
     if (species=='pH2-4g') then
         NGAUSS=4
         LJA(1:4) = (/ 1.038252215127D0, 0.5974039109464D0, 0.196476572277834D0, &
@@ -36,4 +40,8 @@
     end if
 
 
+    if (species == 'LJ') then
+        Ulrc = 8d0*M_PI/9d0*(1d0/rc**9 - 3d0/rc**3)
+        UXXlrc = 32d0*M_PI*(2d0/rc**11 - 1d0/rc**5)
+    end if
     invmass = 1.0/mass

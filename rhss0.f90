@@ -36,6 +36,8 @@ SUBROUTINE RHSS0(NEQ, T, YMASTER, YPMASTER)
         G = y(3*Natom + 6*I1-5 : 3*Natom + 6*I1)
         UPM1 = UPM(:,I1)
 
+        UPM1( (/ 1, 4, 6/) ) = UPM1( (/ 1, 4, 6/) ) + UXXlrc
+
         TRUXXG = TRUXXG +     G(1)*UPM1(1) + 2d0*G(2)*UPM1(2) &
                         + 2d0*G(3)*UPM1(3) +     G(4)*UPM1(4) &
                         + 2d0*G(5)*UPM1(5) +     G(6)*UPM1(6)
@@ -51,13 +53,15 @@ SUBROUTINE RHSS0(NEQ, T, YMASTER, YPMASTER)
         GUG(4) = GUG(4) + invmass
         GUG(6) = GUG(6) + invmass
 
+        UPM(:,I1) = UPM1
         yp(3*I1-2 : 3*I1) = QP_
         yp(3*Natom + 6*I1-5 : 3*Natom + 6*I1) = GUG
     end do
 !$omp end do
 
 !$omp master
-    yp(NEQ) = -(0.25d0*TRUXXG + U)/real(Natom)
+    U = U + Ulrc
+    yp(NEQ) = -(0.25d0*TRUXXG*LAMBDA + U)/real(Natom)
 !$omp end master
 END SUBROUTINE RHSS0
 

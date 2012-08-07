@@ -47,7 +47,11 @@ SUBROUTINE vgw0(Q0, BL_, beta,Ueff)
     y(1 : 3*Natom) = reshape(q0, (/3*Natom/))
     y(3*Natom+1:) = 0d0
 
-    call       presort_ppc(y(1:3*Natom), 8)
+    call presort_ppc(y(1:3*Natom), 8)
+    if (.not. pbc) then
+        Ulrc = 0.0
+        UXXlrc = 0.0
+    end if
 
     dlsode_done=.FALSE.
     !print *, 'OAK',   omp_get_thread_num(), omp_get_wtime()
@@ -120,8 +124,10 @@ subroutine presort_ppc(r, nppc)
     if (bl > 2*sysbox) then
         nunits = nint(2.0 * (0.75*Natom/(M_PI*nppc))**(1.0/3.0))
         cbl = sysbox
+        pbc = .FALSE.
     else
         nunits = nint((real(Natom)/real(nppc))**(1.0/3.0))
+        pbc = .TRUE.
     end if
 
     bu = cbl / nunits

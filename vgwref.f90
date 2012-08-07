@@ -5,7 +5,7 @@ module vgwref
     public :: vgwrefinit, get_fx, vgwref0, vgwrefcleanup
     
     integer :: Natom, Nmax, maxthreads
-    real*8 :: BL, rfullmatsq
+    real*8 :: BL, rfullmatsq, sigma0, epsilon0, Ulrc, UXXlrc, m0
     real*8, dimension(10) :: LJA, LJC
     integer :: NGAUSS
     integer, allocatable :: NBIDX(:,:), NNB(:)
