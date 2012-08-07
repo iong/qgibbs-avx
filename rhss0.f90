@@ -217,7 +217,7 @@ subroutine rhss_zero_time(NEQ, y, yp)
 
 !$omp do schedule(static)
     do i=3*Natom+1,9*Natom,6
-        yp(i : i+5) = (/invmass, 0d0, 0d0, invmass, 0d0, invmass/)
+        yp(i : i+5) = (/invmass, 0.0, 0.0, invmass, 0.0, invmass/)
     end do
 !$omp end do
 
