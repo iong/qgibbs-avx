@@ -48,7 +48,10 @@ SUBROUTINE vgw0(Q0, BL_, beta,Ueff)
     y(3*Natom+1:) = 0d0
 
     call presort_ppc(y(1:3*Natom), 8)
-    if (.not. pbc) then
+    if (pbc) then
+        Ulrc = Ulrc * Natom**2 / BL**3
+        UXXlrc = Ulrc * Natom**2 / BL**3
+    else
         Ulrc = 0.0
         UXXlrc = 0.0
     end if
