@@ -29,7 +29,7 @@ SUBROUTINE RHSS0(NEQ, T, YMASTER, YPMASTER)
         return
     end if
 
-    call gaussian_average_avx(y, U, UPV, UPM)
+    call gaussian_average_acc(y, U, UPV, UPM)
 
 !$omp do schedule(static) reduction(+:TRUXXG)
     do i1=1,Natom

@@ -25,19 +25,19 @@ module vgw
     real(RP), allocatable, dimension(:,:) :: Zq, GC, A, AG, Z
 
     interface
-        subroutine gaussian_average_avx_init(Natom, nnb, nbidx, nnbmax, LJA, LJC, NGAUSS, bl) bind(c)
+        subroutine gaussian_average_acc_init(Natom, nnb, nbidx, nnbmax, LJA, LJC, NGAUSS, bl) bind(c)
             use iso_c_binding
             integer(c_int), value :: Natom, nnbmax, NGAUSS
             integer(c_int) :: nnb(*), nbidx(*)
             real(c_float) :: LJA(*), LJC(*)
             real(c_double), value :: BL
         end subroutine
-        subroutine gaussian_average_avx(y, U, UPV, UPM) bind(c)
+        subroutine gaussian_average_acc(y, U, UPV, UPM) bind(c)
             use iso_c_binding
             real(c_double), intent(in) :: y(*)
             real(c_double), intent(out) :: U, UPV(*), UPM(*)
         end subroutine
-        subroutine gaussian_average_avx_cleanup() bind(c)
+        subroutine gaussian_average_acc_cleanup() bind(c)
         end subroutine
     end interface
 

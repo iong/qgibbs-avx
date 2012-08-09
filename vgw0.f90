@@ -69,7 +69,7 @@ SUBROUTINE vgw0(Q0, BL_, beta,Ueff)
 
     if (tid == 0) then
         !print *, 'master entry', omp_get_thread_num(), omp_get_wtime()
-        call gaussian_average_avx_init(Natom, nnb, nbidx, nnbmax, LJA, LJC, NGAUSS, bl)
+        call gaussian_average_acc_init(Natom, nnb, nbidx, nnbmax, LJA, LJC, NGAUSS, bl)
         CALL DLSODE(RHSS0,NEQ,Y,T,TSTOP,ITOL,RTOL,ATOL,ITASK,ISTATE,IOPT,&
             RWORK,LRW,IWORK,LIW,JAC,MF)
         dlsode_done = .TRUE.
@@ -93,14 +93,14 @@ SUBROUTINE vgw0(Q0, BL_, beta,Ueff)
     DO j=3*Natom+1,9*Natom,6
         LOGDET = LOGDET + LOG( DETM_S(y(j : j+5)) )
     ENDDO
-    print *, 'p', LOGDET, y(NEQ)
+    !print *, 'p', LOGDET, y(NEQ)
 
     logrho = 2.0*Natom*y(NEQ) - 0.5*LOGDET - 1.5*Natom*log(4.0*M_PI)
     ncalls = IWORK(12)
     !write (*,*) IWORK(11), 'steps,', IWORK(12), ' RHSS calls, logdet =', logdet
 
     deallocate(y, RWORK, IWORK, ATOL)
-    call gaussian_average_avx_cleanup()
+    call gaussian_average_acc_cleanup()
 
     Ueff = -logrho/beta
 END SUBROUTINE
