@@ -106,14 +106,16 @@ static void vgw_kernel_avx(int first, int stride, float *q, float *GC, float *U,
 	__m256 v0 = _mm256_mul_ps(_mm256_mul_ps(two, _mm256_broadcast_ss(LJC+IG)), _mm256_mul_ps(_mm256_load_ps(expav), _mm256_sqrt_ps(_mm256_mul_ps(deta, idetag))));
 
 	Ulocal = _mm256_add_ps(Ulocal, v0);
-
+/*
 	__m256 thresh = _mm256_set_ps(1e3, 1e3, 1e3, 1e3, 1e3, 1e3, 1e3, 1e3);
-	__m256 mask = _mm256_set_ps(-0.0f, -0.0f, -0.0f, -0.0f, -0.0f, -0.0f, -0.0f, -0.0f);
+*/
 	for (j=0; j<3; j++) {
 	    ux0[j] = _mm256_sub_ps(ux0[j], _mm256_mul_ps(v0, Zq[j]));
+	    /*
 	    if (_mm256_movemask_ps(_mm256_cmp_ps(_mm256_andnot_ps(mask, ux0[j]), thresh, _CMP_GT_OS)) & 0xff) {
 		    printf("%d, %d, %d\n", first, IG, j);
 	    }
+	    */
 	}
 
 	uxx0[0] = _mm256_add_ps(uxx0[0], _mm256_mul_ps(v0, _mm256_sub_ps(_mm256_mul_ps(two, _mm256_mul_ps(Zq[0], Zq[0])), z[0])));
