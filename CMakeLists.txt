@@ -24,8 +24,8 @@ if (CMAKE_Fortran_COMPILER_ID STREQUAL Intel)
     set(CMAKE_C_FLAGS_DEBUG "-O0 -g")
 
 elseif(CMAKE_Fortran_COMPILER_ID STREQUAL GNU)
-    set(CMAKE_C_FLAGS "-mfma4")
-    set(CMAKE_Fortran_FLAGS "-fimplicit-none")
+    set(CMAKE_C_FLAGS "-march=native")
+    set(CMAKE_Fortran_FLAGS "-march=native -fimplicit-none")
 
     set(CMAKE_Fortran_FLAGS_DEBUG "-fbacktrace -fbounds-check -ffpe-trap=invalid,zero,overflow,denormal -fimplicit-none -O0 -g")
     set(CMAKE_Fortran_FLAGS_DEBUG "-fbacktrace -fbounds-check -fimplicit-none -O0 -g")
