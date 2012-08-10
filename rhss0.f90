@@ -242,6 +242,7 @@ subroutine rhss_zero_time(NEQ, y, yp)
 
 !$omp master
     !print *, 'U =', U
+    U = U + Ulrc
 
     yp(NEQ) = -U/real(Natom )
 !$omp end master
