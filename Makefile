@@ -7,38 +7,30 @@ endif
 
 #DBG=1
 COMPILER:=intel
+BLAS:=mkl_sequential
+BT:=opt
+TARGET:=host
 
 OS=$(shell uname -s)
 include $(VPATH)/config/$(COMPILER).mk
-EXT:=
-ifdef CPU
-    EXT:=.$(CPU)
-endif
+include $(VPATH)/config/blas.mk
+#include $(VPATH)/config/cholmod.mk
 
-ifdef DBG
-	OPTFLAGS := $(DBGFLAGS)
-	FFLAGS   += $(FDBG) 
-	LDFLAGS  += $(FDBG)
-endif
-
+ifeq $(BT), "debug"
+CFLAGS   += $(CDBG) 
+FFLAGS   += $(FDBG) 
+LDFLAGS  += $(FDBG)
+else
 FFLAGS += $(OPTFLAGS)
 CFLAGS += $(OPTFLAGS)
 LDFLAGS += $(OPTFLAGS)
-
-LIBS += -lcholmod -lamd -lcamd -lcolamd -lccolamd
-ifeq ($(OS),Darwin)
-	LIBS += -lmetis
 endif
-LIBS += $(LAPACK)
 
-pimc:=utils.f90 pairint.f90 pimc.f90
-pimcsc:=utils.f90 pimcsc.f90
-ljdimer:=utils.f90 mvgwmodeffpot.f90 vgw.f90 vgwfm.f90 dlsode.f vgwspb_H2_4G_Rc_Q_tau_SqrtMeff_Mar03.f ljdimer.f90
+
+LIBS += $(BLAS)
+LDFLAGS += $(BLAS_LDFLAGS)
+
 clustergs:=cholmod_logdet.c  dlsode.f  utils.f90 vgw.f90 vgwspfm.f90  vgwfm.f90 clustergs.f90
-mccluster:=det_sparse_g.c utils.f90 mvgwmodeffpot.f90 vgw.f90  vgwspfm.f90 dlsode.f vgwspb_H2_4G_Rc_Q_tau_SqrtMeff_Mar03.f mccluster.f90
-gibbs3:=utils.f90 pairint.f90 gibbs3.f90
-gibbs4:=gibbs4.f90
-gibbs3h:=gibbs3h.f90
 qgibbs:=cholmod_logdet.c utils.f90 dlsode.f vgw.f90 qgibbs.f90
 objects=$(addsuffix .o,$(basename $(1)))
 
@@ -60,35 +52,11 @@ deps:
 %.o : %.f
 	$(FC) $(FFLAGS) -c $<
 
-debug:
-	@echo $(PWD)
-	$(MAKE) -f $(THIS_MAKEFILE) DBG=1
-
-gibbs4$(EXT): $(call objects,$(gibbs4))
-	$(FC) $(LDFLAGS) -o $@ $^ $(LIBS)
-
-gibbs3h$(EXT): $(call objects,$(gibbs3h))
-	$(FC) $(LDFLAGS) -o $@ $^ $(LIBS)
-
-gibbs3$(EXT): $(call objects,$(gibbs3))
-	$(FC) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 qgibbs: $(call objects,$(qgibbs))
 	$(FC) $(LDFLAGS) -o $@ $^ $(LIBS)
 
-ljdimer: $(call objects,$(ljdimer))
-	$(FC) $(LDFLAGS) -o $@ $^ $(LIBS)
-
 clustergs: $(call objects,$(clustergs))
-	$(FC) $(LDFLAGS) -o $@ $^ $(LIBS) 
-
-mccluster: $(call objects,$(mccluster))
-	$(FC) $(LDFLAGS) -o $@ $^ $(LIBS) 
-
-pimc: $(call objects,$(pimc))
-	$(FC) $(LDFLAGS) -o $@ $^ $(LIBS) 
-
-pimcsc: $(call objects,$(pimcsc))
 	$(FC) $(LDFLAGS) -o $@ $^ $(LIBS) 
 
 %.ps: %.f90

@@ -1,20 +1,17 @@
 CC:=icc
 FC:=ifort
-#Generic AMD
-ifeq ($(CPU),amd)
-    OPTFLAGS:=-ipo -O3 -msse3 -no-prec-div
-#Generic Intel
-else ifeq ($(CPU),intel)
-    OPTFLAGS:=-ipo -O3 -no-prec-div -xSSE4.2
-# Host
-else
-    OPTFLAGS:=-ipo -O3 -xHost
-endif
-OPTFLAGS += -heap-arrays
-DBGFLAGS:=-O0 -g 
-FDBG:=-fpe0 -traceback -check all -ftrapuv -warn unused
-FFLAGS:=
-LDFLAGS += -L/opt/hpc//intel-2011/lib
-CPPFLAGS += -I/opt/hpc//intel-2011/include
 
-LAPACK := -mkl=parallel
+#Generic AMD
+ifeq ($(TARGET),amd)
+    COPT:=-ipo -O3 -msse3 -no-prec-div
+else ifeq ($(CPU),intel)
+    COPT:=-ipo -O3 -no-prec-div -xSSE4.2
+else
+    COPT:=-ipo -O3 -xHost
+endif
+FOPT:=$(COPT)
+
+FFLAGS += -heap-ararys
+
+CDBG:=-O0 -g 
+FDBG:=-fpe0 -traceback -check all -ftrapuv -warn unused
