@@ -121,7 +121,6 @@ program qgibbs
         call random_number(rn)
         jmc=int(rn*Ntot) + 1
         call mc_move(jmc)
-        write (*,*) imc
         call cumulate()
 
         if (mod(imc,mcblen) == 0) then
