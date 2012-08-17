@@ -23,7 +23,7 @@
 #ifndef _gmx_math_x86_avx_256_single_h_
 #define _gmx_math_x86_avx_256_single_h_
 
-#include "gmx_x86_avx_256.h"
+//#include "gmx_x86_avx_256.h"
 
 
 #ifndef M_PI
