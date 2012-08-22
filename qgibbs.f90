@@ -339,7 +339,8 @@ contains
         else
             N(isrc) = N(isrc) + 1
             N(idest) = N(idest) - 1
-            rs(:,N(isrc),isrc) = rso
+            rs(:,N(isrc),isrc) = rs(:,jkill,isrc)
+            rs(:,jkill,isrc) = rso
         end if
     end subroutine mc_swap
 
