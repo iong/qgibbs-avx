@@ -35,6 +35,7 @@ subroutine vgwrefinit(Nmax_, species, M, rcutoff, massx)
     
     
 include 'species.f90'
+    invmass = 1d0/mass
 end subroutine
 
 

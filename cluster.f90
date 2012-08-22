@@ -25,14 +25,13 @@ program cluster
     beta = 1d0/kT
 
    
-    call vgwinit(N, 'LJ', 1d0/deBoer**2)
+    call vgwinit('LJ')
     call cpu_time(begtime(1))
     do i = 1,Npts
         sf = 0.95 + (1.5-0.95)*real(i-1)/real(Npts-1)
-        call vgw0(r0 * sf, bl, beta, U(i, 1))
+        U(i, 1) = vgw0(r0 * sf, bl, beta, deBoer)
     end do
     call cpu_time(endtime(1))
-    call vgwcleanup()
 
 !   call vgwrefinit(N, 'LJ', 1d0/deBoer**2)
 !   call cpu_time(begtime(2))

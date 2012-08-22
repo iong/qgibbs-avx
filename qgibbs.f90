@@ -1,5 +1,6 @@
 program qgibbs
     use utils, only: min_image, replace_char, M_PI
+    use vgw
     implicit none
     real*8 :: rhcore
     real*8 :: Vtot, V(2), bl(2), kT, beta, U0(4), xstep(2), Vstep
@@ -18,10 +19,12 @@ program qgibbs
     namelist/restart_parameters/imc, N, Vtot, V, bl, nxtrials, nxacc, xstep, nswapacc, nvoltrials, nvolacc, Vstep, rs
 
     interface
-        double precision function total_energy(rs, bl, beta, deBoer)
-            double precision, intent(in) :: rs(:,:), bl, beta, deBoer
-        end function total_energy
+        double precision function energy(rs, bl)
+            double precision, intent(in) :: rs(:,:), bl
+        end function
     end interface
+    procedure(energy), pointer :: total_energy
+
 
     if (command_argument_count() == 2) then
         restart = .TRUE.
@@ -74,7 +77,10 @@ program qgibbs
         NMCstart = Nequil + 1
     end if
 
-    write (*,*) N, V, bl
+    total_energy =>total_energy_vgw
+    !if (method == 'vgwspfm') then
+    !    total_energy => total_energy_vgwspfm
+    !end if
 
 
     write(datadir, '("qgibbs_kT=",F6.3)') kT
@@ -111,8 +117,8 @@ program qgibbs
     VdeBroglie = (2*M_PI*deBoer/sqrt(kT))**3
 
 
-    U0(1) = total_energy(rs(:,:N(1), 1), bl(1), beta, deBoer)
-    U0(2) = total_energy(rs(:,:N(2), 2), bl(2), beta, deBoer)
+    U0(1) = total_energy(rs(:,:N(1), 1), bl(1))
+    U0(2) = total_energy(rs(:,:N(2), 2), bl(2))
 
     call reset_averages()
     do
@@ -244,7 +250,7 @@ contains
         else
             rs(:,j,ibox) = rsn 
 
-            U0new = total_energy(rs(:,:N(ibox), ibox), bl(ibox), beta, deBoer)
+            U0new = total_energy(rs(:,:N(ibox), ibox), bl(ibox))
 
             p = exp(-beta * (U0new - U0(ibox)) )
         end if
@@ -296,8 +302,8 @@ contains
         N(isrc) = N(isrc) - 1
         N(idest) = N(idest) + 1
 
-        U0new(1) = total_energy(rs(:,:N(1), 1), bl(1), beta, deBoer)
-        U0new(2) = total_energy(rs(:,:N(2), 2), bl(2), beta, deBoer)
+        U0new(1) = total_energy(rs(:,:N(1), 1), bl(1))
+        U0new(2) = total_energy(rs(:,:N(2), 2), bl(2))
 
         pacc = pacc0 * exp( - beta * sum(U0new(1:2) - U0(1:2)) )
         mum(idest) = mum(idest) + V(idest)/(VdeBroglie * N(idest)) * &
@@ -333,8 +339,8 @@ contains
         ! ensure bl > 5\sigma
         if (minval(bln) < 5.0) return
 
-        U0new(1) = total_energy(rs(:,:N(1), 1), bln(1), beta, deBoer)
-        U0new(2) = total_energy(rs(:,:N(2), 2), bln(2), beta, deBoer)
+        U0new(1) = total_energy(rs(:,:N(1), 1), bln(1))
+        U0new(2) = total_energy(rs(:,:N(2), 2), bln(2))
 
         logp = sum ( -beta * (U0new(1:2) - U0(1:2)) + real(N)*(log(Vn/V)) )
         call random_number(rn)
@@ -426,7 +432,7 @@ contains
             write(33,'(("X ", 3F13.8))') rs(:,1:N(ibox),ibox)
         end do
         close(33)
-    end subroutine dump_xyz
+    end subroutine
 
     subroutine load_xyz(fname)
         character(*), intent(in) :: fname
@@ -461,4 +467,13 @@ contains
         write(33,NML=restart_parameters)
         close(33)
     end subroutine checkpoint
+
+
+    double precision function total_energy_vgw(rs, bl)
+        implicit none
+        double precision, intent(in) :: rs(:,:), bl
+
+        call vgwinit('LJ')
+        total_energy_vgw = vgw0(rs*bl, bl, beta, deBoer)
+    end function
 end program qgibbs

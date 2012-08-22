@@ -3,7 +3,7 @@ module vgw
     use iso_c_binding
     implicit none
     private
-    public :: vgwinit, vgw0, vgwcleanup
+    public :: vgwinit, vgw0
     
     integer :: Natom, Nmax, maxthreads
     real(c_double) :: BL, rfullmatsq
@@ -16,7 +16,8 @@ module vgw
     real*8 :: U, TRUXXG, UXXlrc, Ulrc
     real*8, allocatable :: UPV(:,:), UPM(:,:)
     
-    real(c_float) :: invmass, RC, mass, dt0, dtmax, dtmin, vgw_atol(3)
+    real(c_float) :: sigma0=1.0, epsilon0=1.0, mass, LAMBDA
+    real(c_float) :: RC, dt0, dtmax, dtmin, vgw_atol(3)
     logical :: dlsode_done=.FALSE., rhss_done, pbc=.FALSE.
 !$omp threadprivate(rhss_done)
 
@@ -44,25 +45,14 @@ module vgw
 contains
 
 
-subroutine vgwinit(Nmax_, species, M, rcutoff)
-!$  use omp_lib
+subroutine vgwinit(species, M, rcutoff)
     implicit none
-    integer, intent(in) :: Nmax_
     character(*), intent(in) :: species
     real*8, intent(in), optional :: M, rcutoff
-    integer :: nmax_threads = 1
 
-    Nmax = Nmax_
-!$  nmax_threads = omp_get_max_threads()
-    allocate(NNB(Nmax), NBIDX(Nmax,Nmax), upv(3, Nmax*nmax_threads), &
-        upm(6, Nmax*nmax_threads))
 include 'species.f90'
 end subroutine
 
-
-subroutine vgwcleanup()
-    deallocate(NNB, NBIDX, UPV, UPM)
-end subroutine
 
 subroutine interaction_lists(r)
     implicit none
@@ -101,13 +91,15 @@ subroutine interaction_lists(r)
 !$omp end master
 end subroutine interaction_lists
 
-SUBROUTINE vgw0(Q0, BL_, beta,Ueff)
+function vgw0(Q0, BL_, beta, deBoer) result(Ueff)
 !$  use omp_lib
     IMPLICIT NONE
     double precision, intent(in) :: Q0(:,:), beta, BL_
-    double precision, intent(out) :: Ueff
+    double precision, intent(in), optional :: deBoer
+    double precision :: Ueff
     real*8 :: LOGDET, logrho, T, TSTOP
     integer :: i, j, ncalls
+    integer :: nmax_threads = 1
 
     double precision, allocatable :: Y(:), RWORK(:), ATOL(:)
     integer, allocatable :: IWORK(:)
@@ -117,12 +109,27 @@ SUBROUTINE vgw0(Q0, BL_, beta,Ueff)
     double precision :: RTOL
 
     Natom = size(Q0, 2)
-    BL = BL_
+    BL = BL_ / sigma0
+
+    if (present(deBoer)) then
+        LAMBDA=deBoer
+    else
+        LAMBDA=1d0/(sigma0*sqrt(mass*epsilon0))
+    end if
+    
+    if (LAMBDA == 0.0) then
+        Ueff = classical_total_energy(y(1:3*Natom))
+        return
+    endif
 
     NEQ = 9*Natom + 1
 
     LRW = 20 + 16*NEQ
     LIW = 30
+    
+!$  nmax_threads = omp_get_max_threads()
+    allocate(NNB(Natom), NBIDX(Natom,Natom), upv(3, Natom*nmax_threads), &
+        upm(6, Natom*nmax_threads))
     allocate(Y(NEQ), ATOL(NEQ), RWORK(LRW), IWORK(LIW))
 
     ITOL=2
@@ -145,9 +152,9 @@ SUBROUTINE vgw0(Q0, BL_, beta,Ueff)
     RWORK(7)=dtmin
     
     T = 0
-    TSTOP = 0.5d0*beta
+    TSTOP = 0.5d0*beta * epsilon0
 
-    y(1 : 3*Natom) = reshape(q0, (/3*Natom/))
+    y(1 : 3*Natom) = reshape(q0, (/3*Natom/)) / sigma0
     y(3*Natom+1:) = 0d0
 
     call presort_ppc(y(1:3*Natom), 8)
@@ -160,7 +167,6 @@ SUBROUTINE vgw0(Q0, BL_, beta,Ueff)
     end if
 
     dlsode_done=.FALSE.
-    !print *, 'OAK',   omp_get_thread_num(), omp_get_wtime()
     tid = 0
 !$omp parallel private(tid)
 
@@ -198,15 +204,17 @@ SUBROUTINE vgw0(Q0, BL_, beta,Ueff)
     ENDDO
     !print *, 'p', LOGDET, y(NEQ)
 
+    LOGDET = LOGDET + 6d0*Natom*log(sigma0)
     logrho = 2.0*Natom*y(NEQ) - 0.5*LOGDET - 1.5*Natom*log(4.0*M_PI)
     ncalls = IWORK(12)
     !write (*,*) IWORK(11), 'steps,', IWORK(12), ' RHSS calls, logdet =', logdet
 
     deallocate(y, RWORK, IWORK, ATOL)
+    deallocate(NNB, NBIDX, UPV, UPM)
     call gaussian_average_acc_cleanup()
 
     Ueff = -logrho/beta
-END SUBROUTINE
+END function
 
 
 subroutine presort_ppc(r, nppc)
@@ -249,14 +257,6 @@ subroutine presort_ppc(r, nppc)
     r_ = r(:,idx)
     r = r_
 end subroutine presort_ppc
-
-subroutine adjust_nbidx_for_c()
-    integer :: i
-    do i=1,Natom
-        nbidx(1:nnb(i),i) =  nbidx(1:nnb(i),i) - 1
-    end do
-end subroutine
-
 
 subroutine JAC()
 end subroutine
@@ -313,9 +313,9 @@ SUBROUTINE RHSS0(NEQ, T, YMASTER, YPMASTER)
         GU = mm_ss(G, UPM1)
         GUG = -mm_ss(GU, G)
 
-        GUG(1) = GUG(1) + invmass
-        GUG(4) = GUG(4) + invmass
-        GUG(6) = GUG(6) + invmass
+        GUG(1) = GUG(1) + LAMBDA**2
+        GUG(4) = GUG(4) + LAMBDA**2
+        GUG(6) = GUG(6) + LAMBDA**2
 
         UPM(:,I1) = UPM1
         yp(3*I1-2 : 3*I1) = QP_
@@ -481,7 +481,7 @@ subroutine rhss_zero_time(NEQ, y, yp)
 
 !$omp do schedule(static)
     do i=3*Natom+1,9*Natom,6
-        yp(i : i+5) = (/invmass, 0.0, 0.0, invmass, 0.0, invmass/)
+        yp(i : i+5) = (/LAMBDA**2, 0.0, 0.0, LAMBDA**2, 0.0, LAMBDA**2/)
     end do
 !$omp end do
 
@@ -511,6 +511,34 @@ subroutine rhss_zero_time(NEQ, y, yp)
     yp(NEQ) = -U/real(Natom )
 !$omp end master
 end subroutine
+
+function classical_total_energy(r) result(Ucl)
+    implicit none
+    real*8, intent(in) :: r(3,Natom)
+    integer :: I,J, NN
+    real*8 :: rsq,rcsq, dr(3), bl2, Ucl
+    
+
+    Ucl = 0d0
+    rcsq=rc**2
+    bl2=0.5*bl
+    do I=1,Natom-1
+        do J=I+1,Natom
+            dr = r(:,j) - r(:,i)
+
+            where (abs(dr) > bl2)
+                dr  = dr - sign(bl, dr)
+            end where
+
+            rsq = sum(dr**2)
+ 
+            if(rsq <= rcsq) then
+                Ucl = Ucl + sum(LJC(1:NGAUSS)*EXP(-LJA(1:NGAUSS)*rsq))
+            endif
+        enddo
+    enddo
+end function
+
 
 end module vgw
 

@@ -44,4 +44,3 @@
         Ulrc = 8d0*M_PI/9d0*(1d0/rc**9 - 3d0/rc**3)
         UXXlrc = 32d0*M_PI*(2d0/rc**11 - 1d0/rc**5)
     end if
-    invmass = 1.0/mass
