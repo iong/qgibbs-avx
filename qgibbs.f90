@@ -11,11 +11,11 @@ program qgibbs
     integer :: nswapacc = 0, nmum(2)
     integer :: nxtrials(2)=0, nxaccsum(2) = 0, nxacc(2)=0, nvoltrials=0, nvolacc=0
     integer :: imc=1, NMC=15000000, jmc, Nequil=100000, mcblen=10000, ib, NMCstart
-    integer :: logfd=31, swapfd=32
-    character(LEN=256) :: arg, datadir, logfile
+    integer :: logfd=31, swapfd=32, argshift,histfd=35
+    character(LEN=256) :: arg, datadir, logfile, method='vgw', histfile
     logical :: restart = .FALSE., oldlog
     real*8 :: rn
-    namelist/input_parameters/N, rho0, kT, deBoer, Nswap
+    namelist/input_parameters/N, rho0, kT, deBoer, Nswap, method
     namelist/restart_parameters/imc, N, Vtot, V, bl, nxtrials, nxacc, xstep, nswapacc, nvoltrials, nvolacc, Vstep, rs
 
     interface
@@ -43,19 +43,25 @@ program qgibbs
 
         imc = imc + 1
     else
+        argshift = 0
         call get_command_argument(1, arg)
+        if (arg == '-m') then
+            call get_command_argument(1, method)
+            argshift = 2
+        endif
+        call get_command_argument(argshift+1, arg)
         read (arg, *) N(1)
-        call get_command_argument(2, arg)
+        call get_command_argument(argshift+2, arg)
         read (arg, *) N(2)
-        call get_command_argument(3, arg)
+        call get_command_argument(argshift+3, arg)
         read (arg, *) rho0(1)
-        call get_command_argument(4, arg)
+        call get_command_argument(argshift+4, arg)
         read (arg, *) rho0(2)
-        call get_command_argument(5, arg)
+        call get_command_argument(argshift+5, arg)
         read (arg, *) kT
-        call get_command_argument(6, arg)
+        call get_command_argument(argshift+6, arg)
         read (arg, *) deBoer
-        call get_command_argument(7, arg)
+        call get_command_argument(argshift+7, arg)
         read(arg, *) Nswap
 
         Ntot = sum(N)
@@ -92,17 +98,28 @@ program qgibbs
     close(39)
 
     logfile = trim(datadir)// '/block_average.dat'
+    histfile = trim(datadir)// '/histogram_data.bin'
     if (restart) then
         inquire(file=trim(logfile), EXIST=oldlog)
         if (oldlog) then
             open(logfd,file=trim(logfile), status='OLD', position='APPEND')
+            open(histfd,file=trim(histfile), status='OLD', position='APPEND', &
+                form='UNFORMATTED', access='stream')
         else
             open(logfd,file=trim(logfile), status='NEW')
             call dump_block_avg(just_header=.TRUE.)
+
+            open(histfd,file=trim(histfile), status='NEW', form='UNFORMATTED', &
+                access='stream')
+            call dump_histogram_header()
         end if
     else
         open(logfd,file=trim(logfile), status='REPLACE')
         call dump_block_avg(just_header=.TRUE.)
+
+        open(histfd,file=trim(histfile), status='REPLACE', form='UNFORMATTED', &
+            access='stream')
+        call dump_histogram_header()
         Vstep=0.01*minval(V)
         xstep = 3.0/bl
     end if
@@ -155,6 +172,8 @@ program qgibbs
 
         call cumulate()
 
+        write (histfd) N(1),real(V(1),4), real(U0,4)
+
         if (mod(imc,mcblen) == 0) then
             call dump_block_avg()
             call checkpoint()
@@ -168,6 +187,7 @@ program qgibbs
 
     close(logfd)
     close(swapfd)
+    close(histfd)
 
 contains
 
@@ -417,6 +437,21 @@ contains
 
         call reset_averages()
     end subroutine dump_block_avg
+
+    subroutine dump_histogram_header()
+        integer :: i, j
+        integer :: header_length = 256
+
+        write(histfd) &
+            "###This header is ", header_length, "bytes long."//new_line("x")//&
+            "### Start reading the binary data from bye 257." //new_line('x')//&
+            "[('N1', 'i4'), ('V1', 'f4'), ('E1', 'f4'), ('E2', 'f4')]"//&
+            new_line('x')
+
+        inquire(histfd, pos=i)
+        write(histfd) (/ ('#', j=i,header_length - 1) /)
+        write(histfd) new_line('x')
+    end subroutine
 
     subroutine dump_xyz()
         implicit none
