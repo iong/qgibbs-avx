@@ -440,18 +440,20 @@ contains
     end subroutine dump_block_avg
 
     subroutine dump_histogram_header()
-        integer :: i, j
+        integer :: pos
         integer :: header_length = 256
+        character(16) :: word
+        
+        write(word,'(I3)') header_length
 
         write(histfd) &
-            "###This header is ", header_length, "bytes long."//new_line("x")//&
-            "### Start reading the binary data from bye 257." //new_line('x')//&
-            "[('N1', 'i4'), ('V1', 'f4'), ('E1', 'f4'), ('E2', 'f4')]"//&
+            "# This header is ", trim(word), "bytes long."//new_line("x")//&
+            "# Start reading the binary data from byte 257."//new_line('x')//&
+            "[('N1', 'i4'), ('V1', 'f4'), ('E1', 'f4'), ('E2', 'f4')]" // &
             new_line('x')
 
-        inquire(histfd, pos=i)
-        write(histfd) (/ ('#', j=i,header_length - 1) /)
-        write(histfd) new_line('x')
+        inquire(histfd, pos=pos)
+        write(histfd) repeat('#', header_length - pos)//new_line('x')
     end subroutine
 
     subroutine dump_xyz()
