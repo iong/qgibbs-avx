@@ -1,5 +1,3 @@
-include (FindLibraryList.cmake)
-
 if($ENV{BLA_VENDOR} MATCHES ".+")
   set(BLA_VENDOR $ENV{BLA_VENDOR})
 endif()
@@ -21,7 +19,7 @@ if (BLA_VENDOR MATCHES "ACML.*" OR BLA_VENDOR STREQUAL "All")
 	set(_lib "acml_mp")
       endif()
 
-      find_library(BLAS_LIBRARIES "${_lib}")
+      find_library(BLAS_LIBRARIES ${_lib})
   endif()
 endif()
 
@@ -50,7 +48,11 @@ if (BLA_VENDOR MATCHES "mkl_.*" OR BLA_VENDOR STREQUAL "All")
       set(_MKL_THREAD "mkl_sequential;mkl_core")
     endif()
 
-    find_library_list(BLAS_LIBRARIES "${_MKL_LP64};${_MKL_THREAD}")
+    foreach(_lib  ${_MKL_LP64};${_MKL_THREAD})
+      find_library(${_lib}_LIBRARY ${_lib})
+      set(BLAS_LIBRARIES ${BLAS_LIBRARIES} ${${_lib}_LIBRARY})
+    endforeach()
+
   endif()
 endif()
 

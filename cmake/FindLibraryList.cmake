@@ -1,6 +1,0 @@
-macro(Find_Library_List LIBRARIES _list)
-  foreach(_lib ${_list})
-    find_library(${_lib}_LIBRARY NAMES ${_lib})
-    set(${LIBRARIES} ${${LIBRARIES}} ${${_lib}_LIBRARY})
-  endforeach()
-endmacro()
