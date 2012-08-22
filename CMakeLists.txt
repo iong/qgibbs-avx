@@ -10,9 +10,9 @@ set(CMAKE_Fortran_COMPILER_INIT "ifort")
 set(BLA_VENDOR "mkl_sequential")
 
 if (APPLE)
-    set(CMAKE_LIBRARY_PATH string(REPLACE ":" " " $ENV{DYLD_LIBRARY_PATH}))
+    string(REPLACE ":" ";" CMAKE_LIBRARY_PATH $ENV{DYLD_LIBRARY_PATH})
 else()
-    set(CMAKE_LIBRARY_PATH string(REPLACE ":" " " $ENV{LD_LIBRARY_PATH}))
+    string(REPLACE ":" ";" CMAKE_LIBRARY_PATH $ENV{LD_LIBRARY_PATH})
 endif()
 
 PROJECT(qgibbs C Fortran)
