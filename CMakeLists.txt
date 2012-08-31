@@ -7,6 +7,7 @@ cmake_minimum_required(VERSION 2.8)
 # BLA_VENDOR: Intel10_lp64, ACML_MP, ACML_FM4_MP, ACML, etc.
 set(CMAKE_C_COMPILER_INIT "icc")
 set(CMAKE_Fortran_COMPILER_INIT "ifort")
+set(OPENMP OFF CACHE BOOL "Enables OpenMP.")
 set(BLA_VENDOR "mkl_sequential")
 
 if (APPLE)
@@ -15,7 +16,10 @@ else()
     string(REPLACE ":" ";" CMAKE_LIBRARY_PATH $ENV{LD_LIBRARY_PATH})
 endif()
 
-PROJECT(qgibbs C Fortran)
+PROJECT(qgibbs C CXX Fortran)
+if(OPENMP)
+	find_package(OpenMP)
+endif()
 
 if (CMAKE_Fortran_COMPILER_ID STREQUAL Intel)
     set(CMAKE_C_FLAGS "-mavx")
@@ -40,6 +44,15 @@ elseif(CMAKE_Fortran_COMPILER_ID STREQUAL PGI OR CMAKE_C_COMPILER_ID STREQUAL PG
     set(CMAKE_C_FLAGS_RELEASE "-fast -O3 -Mvect=sse,simd:256 -Mipa=fast -Minline -tp=bulldozer-64 -Mfprelaxed")
     set(CMAKE_Fortran_FLAGS_DEBUG "-g -Ktrap=fp -traceback")
 endif()
+
+
+if(OPENMP_FOUND)
+	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+	set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} ${OpenMP_C_FLAGS}")
+	set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
+endif()
+
 
 set(BLA_STATIC TRUE)
 include(cmake/FindBLAS2.cmake)
