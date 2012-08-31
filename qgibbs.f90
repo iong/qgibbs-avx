@@ -103,12 +103,16 @@ program qgibbs
         inquire(file=trim(logfile), EXIST=oldlog)
         if (oldlog) then
             open(logfd,file=trim(logfile), status='OLD', position='APPEND')
-            open(histfd,file=trim(histfile), status='OLD', position='APPEND', &
-                form='UNFORMATTED', access='stream')
         else
             open(logfd,file=trim(logfile), status='NEW')
             call dump_block_avg(just_header=.TRUE.)
+        endif
 
+        inquire(file=trim(histfile), EXIST=oldhist)
+        if (oldhist) then
+            open(histfd,file=trim(histfile), status='OLD', position='APPEND', &
+                form='UNFORMATTED', access='stream')
+        else
             open(histfd,file=trim(histfile), status='NEW', form='UNFORMATTED', &
                 access='stream')
             call dump_histogram_header()
@@ -447,7 +451,7 @@ contains
         write(word,'(I3)') header_length
 
         write(histfd) &
-            "# This header is ", trim(word), "bytes long."//new_line("x")//&
+            "# This header is ", trim(word), " bytes long."//new_line("x")//&
             "# Start reading the binary data from byte 257."//new_line('x')//&
             "[('N1', 'i4'), ('V1', 'f4'), ('E1', 'f4'), ('E2', 'f4')]" // &
             new_line('x')
