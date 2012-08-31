@@ -13,7 +13,7 @@ program qgibbs
     integer :: imc=1, NMC=15000000, jmc, Nequil=100000, mcblen=10000, ib, NMCstart
     integer :: logfd=31, swapfd=32, argshift,histfd=35
     character(LEN=256) :: arg, datadir, logfile, method='vgw', histfile
-    logical :: restart = .FALSE., oldlog
+    logical :: restart = .FALSE., oldlog, oldhist
     real*8 :: rn
     namelist/input_parameters/N, rho0, kT, deBoer, Nswap, method
     namelist/restart_parameters/imc, N, Vtot, V, bl, nxtrials, nxacc, xstep, nswapacc, nvoltrials, nvolacc, Vstep, rs
