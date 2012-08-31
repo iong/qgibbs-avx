@@ -172,7 +172,7 @@ program qgibbs
 
         call cumulate()
 
-        write (histfd) N(1),real(V(1),4), real(U0,4)
+        write (histfd) N(1),real(V(1),4), real(U0(1:2),4)
 
         if (mod(imc,mcblen) == 0) then
             call dump_block_avg()
