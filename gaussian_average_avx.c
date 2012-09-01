@@ -15,16 +15,26 @@ static float  LJC[16] __attribute__((aligned(32)));
 
 
 
+#ifdef __AVX__
 static __m256 _mm256_flip_sign_ps(__m256 x)
 {
-	__m256 signmask = _mm256_set_ps(-0.0f, -0.0f, -0.0f, -0.0f, -0.0f, -0.0f, -0.0f, -0.0f);
-	return _mm256_xor_ps(x, signmask);
+	return _mm256_xor_ps(x, _mm256_set1_ps(-0.0f));
 }
+#else
+static __m128 _mm_flip_sign_ps(__m128 x)
+{
+	return _mm_xor_ps(x, _mm_set1_ps(-0.0f));
+}
+#endif
 
 #ifdef __FMA4__
 #include "gaussian_average_fma4.h"
-#else
+#elif __AVX__
 #include "gaussian_average_avx.h"
+#elif (__SSE4_2__) || (__SSE4_1__)
+#include "gaussian_average_sse4_1.h"
+#else
+#error "Not supported!"
 #endif
 
 
@@ -102,7 +112,11 @@ void gaussian_average_acc(double *y, double *Uout, double *UPV, double *UPM)
 			for (j=NN1; j<NN18; j++)
 				GC[k*nnbmax + j] = E3[k];
 
+#if defined (__SSE4_2__) || defined (__SSE4_1__)
+		for (j=0; j < NN1; j += 4) {
+#else
 		for (j=0; j < NN1; j += 8) {
+#endif
 			//printf ("%d\n", j);
 			vgw_kernel(j, nnbmax, dq, GC, U0, UX0, UXX0);
 		}
