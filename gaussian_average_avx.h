@@ -82,13 +82,13 @@ static void vgw_kernel(int first, int stride, float *q, float *GC, float *U, flo
 	//qZq = dot_product(Q12, Zq) 
 	qZq = vmuladd3e(Zq[0], dq[0], Zq[1], dq[1], Zq[2], dq[2]);
 
-	__m256 two = _mm256_set_ps(2.0f, 2.0f, 2.0f, 2.0f, 2.0f, 2.0f, 2.0f, 2.0f);
+	__m256 two = _mm256_set1_ps(2.0f);
 	__m256 v0 = _mm256_mul_ps(two, gmx_mm256_exp_ps(_mm256_flip_sign_ps(qZq)));
         v0 = _mm256_mul_ps(_mm256_mul_ps(v0, _mm256_broadcast_ss(LJC+IG)), _mm256_sqrt_ps(_mm256_mul_ps(deta, idetag)));
 
 	Ulocal = _mm256_add_ps(Ulocal, v0);
 /*
-	__m256 thresh = _mm256_set_ps(1e3, 1e3, 1e3, 1e3, 1e3, 1e3, 1e3, 1e3);
+	__m256 thresh = _mm256_set1_ps(1e3);
 */
 	for (j=0; j<3; j++) {
 	    ux0[j] = _mm256_sub_ps(ux0[j], _mm256_mul_ps(v0, Zq[j]));
@@ -107,8 +107,7 @@ static void vgw_kernel(int first, int stride, float *q, float *GC, float *U, flo
 	uxx0[5] = _mm256_add_ps(uxx0[5], _mm256_mul_ps(v0, _mm256_sub_ps(_mm256_mul_ps(two, _mm256_mul_ps(Zq[2], Zq[2])), z[5])));
 
     }
-    __m256 half = _mm256_set_ps(0.5f, 0.5f, 0.5f, 0.5f, 0.5f, 0.5f, 0.5f, 0.5f);
-    _mm256_store_ps(U+first, _mm256_mul_ps(half, Ulocal));
+    _mm256_store_ps(U+first, _mm256_mul_ps(_mm256_set1_ps(0.5f), Ulocal));
 
     for (i=0; i<3; i++) _mm256_store_ps( UX0+first + i*stride,  ux0[i]);
     for (i=0; i<6; i++) _mm256_store_ps(UXX0+first + i*stride, uxx0[i]);
