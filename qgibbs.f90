@@ -10,7 +10,7 @@ program qgibbs
     integer :: Ntot, N(2), Nswap=0, Nvol
     integer :: nswapacc = 0, nmum(2)
     integer :: nxtrials(2)=0, nxaccsum(2) = 0, nxacc(2)=0, nvoltrials=0, nvolacc=0
-    integer :: imc=1, NMC=15000000, jmc, Nequil=100000, mcblen=10000, ib, NMCstart
+    integer :: imc=1, NMC=2048*100000, jmc, Nequil=100000, mcblen=10000, ib, NMCstart
     integer :: logfd=31, swapfd=32, argshift,histfd=35
     character(LEN=256) :: arg, datadir, logfile, method='vgw', histfile
     logical :: restart = .FALSE., oldlog, oldhist
@@ -26,23 +26,7 @@ program qgibbs
     procedure(energy), pointer :: total_energy
 
 
-    if (command_argument_count() == 2) then
-        restart = .TRUE.
-        call get_command_argument(1, arg)
-        open(33,file=trim(arg))
-        read(33,NML=input_parameters)
-        close(33)
-
-        Ntot = sum(N)
-        allocate(rs(3, Ntot, 2))
-
-        call get_command_argument(2, arg)
-        open(33,file=trim(arg))
-        read(33,NML=restart_parameters)
-        close(33)
-
-        imc = imc + 1
-    else
+    if (command_argument_count() >= 7) then
         argshift = 0
         call get_command_argument(1, arg)
         if (arg == '-m') then
@@ -81,6 +65,31 @@ program qgibbs
         call populate_cube2(rs(:,1:N(2), 2))
 
         NMCstart = Nequil + 1
+    else
+        restart = .TRUE.
+        call get_command_argument(1, arg)
+        open(33,file=trim(arg))
+        read(33,NML=input_parameters)
+        close(33)
+
+        Ntot = sum(N)
+        allocate(rs(3, Ntot, 2))
+
+        call get_command_argument(2, arg)
+        open(33,file=trim(arg))
+        read(33,NML=restart_parameters)
+        close(33)
+
+
+
+        if (command_argument_count() >= 3) then
+            call get_command_argument(3, arg)
+            read(arg, *) NMC
+            NMC = imc + NMC
+        end if
+
+        imc = imc + 1
+
     end if
 
     total_energy =>total_energy_vgw
