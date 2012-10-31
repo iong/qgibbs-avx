@@ -112,10 +112,10 @@ void gaussian_average_acc(double *y, double *Uout, double *UPV, double *UPM)
 			for (j=NN1; j<NN18; j++)
 				GC[k*nnbmax + j] = E3[k];
 
-#if defined (__SSE4_2__) || defined (__SSE4_1__)
-		for (j=0; j < NN1; j += 4) {
-#else
+#if defined (__AVX__) || defined (__FMA4__)
 		for (j=0; j < NN1; j += 8) {
+#else
+		for (j=0; j < NN1; j += 4) {
 #endif
 			//printf ("%d\n", j);
 			vgw_kernel(j, nnbmax, dq, GC, U0, UX0, UXX0);
