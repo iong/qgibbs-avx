@@ -524,7 +524,7 @@ contains
         implicit none
         double precision, intent(in) :: rs(:,:), bl
 
-        call vgwinit('LJ')
+        call vgwinit('TT:Ne-Ne')
         total_energy_vgw = vgw0(rs*bl, bl, beta, deBoer)
     end function
 end program qgibbs

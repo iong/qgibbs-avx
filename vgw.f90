@@ -49,6 +49,7 @@ subroutine vgwinit(species, M, rcutoff)
     implicit none
     character(*), intent(in) :: species
     real*8, intent(in), optional :: M, rcutoff
+    real*8 :: C6, C8, C10
 
 include 'species.f90'
 end subroutine
