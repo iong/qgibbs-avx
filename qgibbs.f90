@@ -12,10 +12,11 @@ program qgibbs
     integer :: nxtrials(2)=0, nxaccsum(2) = 0, nxacc(2)=0, nvoltrials=0, nvolacc=0
     integer :: imc=1, NMC=2048*100000, jmc, Nequil=100000, mcblen=10000, ib, NMCstart
     integer :: logfd=31, swapfd=32, argshift,histfd=35
-    character(LEN=256) :: arg, datadir, logfile, method='vgw', histfile
+    character(LEN=256) :: arg, datadir, logfile, histfile
+    character(256) :: method='vgw', species='LJ'
     logical :: restart = .FALSE., oldlog, oldhist
     real*8 :: rn
-    namelist/input_parameters/N, rho0, kT, deBoer, Nswap, method
+    namelist/input_parameters/N, rho0, kT, deBoer, Nswap, method, species
     namelist/restart_parameters/imc, N, Vtot, V, bl, nxtrials, nxacc, xstep, nswapacc, nvoltrials, nvolacc, Vstep, rs
 
     interface
@@ -28,11 +29,18 @@ program qgibbs
 
     if (command_argument_count() >= 7) then
         argshift = 0
-        call get_command_argument(1, arg)
-        if (arg == '-m') then
-            call get_command_argument(1, method)
-            argshift = 2
-        endif
+        do
+            call get_command_argument(argshift+1, arg)
+            if (arg == '-m') then
+                call get_command_argument(argshift+2, method)
+                argshift = argshift + 2
+            else if (arg == '-p') then
+                call get_command_argument(argshift+2, species)
+                argshift = argshift + 2
+            else
+                exit
+            endif
+        end do
         call get_command_argument(argshift+1, arg)
         read (arg, *) N(1)
         call get_command_argument(argshift+2, arg)
@@ -524,7 +532,7 @@ contains
         implicit none
         double precision, intent(in) :: rs(:,:), bl
 
-        call vgwinit('TT:Ne-Ne')
+        call vgwinit(species)
         total_energy_vgw = vgw0(rs*bl, bl, beta, deBoer)
     end function
 end program qgibbs
