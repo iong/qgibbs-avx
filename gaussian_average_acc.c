@@ -84,7 +84,7 @@ void gaussian_average_acc(double *y, double *Uout, double *UPV, double *UPM)
 
 	//printf("%d: %x, %x\n", tid, expav, dq);
 
-#pragma omp for schedule(dynamic, 16)
+#pragma omp for schedule(dynamic, 12)
 	for (i=0; i<Natom-1; i++) {
 		int j, k;
 		int NN1 = nnb[i];	
