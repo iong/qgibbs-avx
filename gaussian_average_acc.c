@@ -30,7 +30,7 @@ static __m128 _mm_flip_sign_ps(__m128 x)
 #ifdef __FMA4__
 #include "gaussian_average_fma4.h"
 #elif __AVX__
-#include "gaussian_average_avx.h"
+#include "gaussian_average_acc.h"
 #elif (__SSE4_2__) || (__SSE4_1__)
 #include "gaussian_average_sse4_1.h"
 #else
