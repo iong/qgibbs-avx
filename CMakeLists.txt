@@ -66,8 +66,8 @@ endif()
 #Targets!
 
 # Quantum Gibbs with VGW-SP
-ADD_EXECUTABLE(qgibbs utils.f90 dlsode.f vgw.f90 gaussian_average_avx.c index_sort.c qgibbs.f90)
-#ADD_EXECUTABLE(cluster utils.f90 dlsode.f vgw.f90 gaussian_average_avx.c index_sort.c vgwref.f90 xyz.f90 cluster.f90)
+ADD_EXECUTABLE(qgibbs utils.f90 dlsode.f vgw.f90 gaussian_average_acc.c index_sort.c qgibbs.f90)
+#ADD_EXECUTABLE(cluster utils.f90 dlsode.f vgw.f90 gaussian_average_acc.c index_sort.c vgwref.f90 xyz.f90 cluster.f90)
 
 #add_executable(qsort qsort_test.f90 utils.f90 index_sort.c)
 
