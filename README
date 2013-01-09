@@ -1,0 +1,12 @@
+Compile
+
+export CC=gcc FC=gfortran
+cmake -DCMAKE_BUILD_TYPE=Release [-DOPENMP=1] [-DARCH=<arch>]
+
+OpenMP is off by default.
+
+<arch> is the argument for gcc -march=<arch>, icc -x<arch> and so on.
+Usefull options for gcc 4.7 are currently bdver1 for Interlagos and
+corei7-avx for Xeons with AVX.
+
+If <arch> is specified, the executable will be qgibbs.<arch>
